@@ -2,5 +2,7 @@
     <qresource prefix="/new/images">
         <file>login.png</file>
         <file>register.png</file>
+        <file>avatar_Amiya1145.jpg</file>
     </qresource>
+    <qresource prefix="/"/>
 </RCC>

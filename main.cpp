@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
         &app,
         []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
-    engine.loadFromModule("the_flight_managerment_system", "Main","Login");
+    engine.loadFromModule("the_flight_managerment_system", "Main");
 
     return app.exec();
 }

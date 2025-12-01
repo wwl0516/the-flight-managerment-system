@@ -148,7 +148,7 @@ QVariantList DBManager::queryAllFlights()
 }
 
 // 按航班号查询
-QVariantMap DBManager::queryFlightByNum(const QString &flightNum)
+QVariantMap DBManager::queryFlightByNum(const QString& flightId)
 {
     QMutexLocker locker(&m_mutex);
     QVariantMap result;
@@ -174,7 +174,7 @@ QVariantMap DBManager::queryFlightByNum(const QString &flightNum)
         return result;
     }
 
-    query.bindValue(":flightNum", flightNum);
+    query.bindValue(":flightId", flightId);
     if (query.exec() && query.next()) {
         result["flightId"] = query.value("Flight_id").toString();
         result["departure"] = query.value("Departure").toString();
@@ -193,14 +193,14 @@ QVariantMap DBManager::queryFlightByNum(const QString &flightNum)
 
 // 添加航班
 bool DBManager::addFlight(
-    const QString& Flight_id,
-    const QString& Departure,
-    const QString& Destination,
-    const QString& depart_time,
-    const QString& arrive_time,
+    const QString& flightId,
+    const QString& departure,
+    const QString& destination,
+    const QString& departTime,
+    const QString& arriveTime,
     double price,
-    int total_seats,
-    int remain_seats
+    int totalSeats,
+    int remainSeats
 ) {
     QMutexLocker locker(&m_mutex);
 
@@ -208,15 +208,15 @@ bool DBManager::addFlight(
         emit operateResult(false, "添加失败：数据库未连接！");
         return false;
     }
-    if (Flight_id.isEmpty() || Departure.isEmpty() || Destination.isEmpty()) {
+    if (flightId.isEmpty() || departure.isEmpty() || destination.isEmpty()) {
         emit operateResult(false, "添加失败：航班号、出发地、目的地不能为空！");
         return false;
     }
-    if (!isValidDateTimeFormat(depart_time) || !isValidDateTimeFormat(arrive_time)) {
+    if (!isValidDateTimeFormat(departTime) || !isValidDateTimeFormat(arriveTime)) {
         emit operateResult(false, "添加失败：时间格式错误！请输入 YYYY-MM-DD HH:MM:SS");
         return false;
     }
-    if (QDateTime::fromString(depart_time, "yyyy-MM-dd HH:mm:ss") >= QDateTime::fromString(arrive_time, "yyyy-MM-dd HH:mm:ss")) {
+    if (QDateTime::fromString(departTime, "yyyy-MM-dd HH:mm:ss") >= QDateTime::fromString(arriveTime, "yyyy-MM-dd HH:mm:ss")) {
         emit operateResult(false, "添加失败：起飞时间不能晚于降落时间！");
         return false;
     }
@@ -224,17 +224,17 @@ bool DBManager::addFlight(
         emit operateResult(false, "添加失败：票价必须大于 0！");
         return false;
     }
-    if (total_seats <= 0 || remain_seats < 0 || remain_seats > total_seats) {
+    if (totalSeats <= 0 || remainSeats < 0 || remainSeats > totalSeats) {
         emit operateResult(false, "添加失败：座位数无效（剩余座位不能大于总座位，且不能为负）！");
         return false;
     }
 
     // 检查航班号是否已存在
     QSqlQuery checkQuery(m_db);
-    checkQuery.prepare("SELECT Flight_id FROM flight WHERE Flight_id = :Flight_id");
-    checkQuery.bindValue(":Flight_id", Flight_id);
+    checkQuery.prepare("SELECT Flight_id FROM flight WHERE Flight_id = :flightId");
+    checkQuery.bindValue(":Flight_id", flightId);
     if (checkQuery.exec() && checkQuery.next()) {
-        emit operateResult(false, "添加失败：航班号 " + Flight_id + " 已存在！");
+        emit operateResult(false, "添加失败：航班号 " + flightId + " 已存在！");
         return false;
     }
 
@@ -245,8 +245,8 @@ bool DBManager::addFlight(
             Flight_id, Departure, Destination, depart_time, arrive_time,
             price, total_seats, remain_seats
         ) VALUES (
-            :Flight_id, :Departure, :Destination, :depart_time, :arrive_time,
-            :price, :total_seats, :remain_seats
+            :flightId, :departure, :destination, :departTime, :arriveTime,
+            :price, :totalSeats, :remainSeats
         )
     )";
 
@@ -258,18 +258,18 @@ bool DBManager::addFlight(
     }
 
     // 绑定所有参数
-    query.bindValue(":Flight_id", Flight_id);
-    query.bindValue(":Departure", Departure);
-    query.bindValue(":Destination", Destination);
-    query.bindValue(":depart_time", depart_time);  // 直接传字符串，SQL 自动解析为 datetime
-    query.bindValue(":arrive_time", arrive_time);
+    query.bindValue(":flightId", flightId);
+    query.bindValue(":departure", departure);
+    query.bindValue(":destination", destination);
+    query.bindValue(":departTime", departTime);  // 直接传字符串，SQL 自动解析为 datetime
+    query.bindValue(":arriveTime", arriveTime);
     query.bindValue(":price", price);            // double 适配 decimal(10,2)
-    query.bindValue(":total_seats", total_seats);
-    query.bindValue(":remain_seats", remain_seats);
+    query.bindValue(":totalSeats", totalSeats);
+    query.bindValue(":remainSeats", remainSeats);
 
     bool success = query.exec();
     if (success) {
-        emit operateResult(true, "航班 " + Flight_id + " 添加成功！");
+        emit operateResult(true, "航班 " + flightId + " 添加成功！");
     } else {
         QString errMsg = "[DB] 插入失败：" + query.lastError().text();
         qCritical() << errMsg;
@@ -399,4 +399,38 @@ bool DBManager::deleteFlight(const QString& Flight_id)
         emit operateResult(false, errMsg);
     }
     return success;
+}
+
+// 辅助函数：打印单个航班信息（按航班号查询后）
+void DBManager::printFlight(const QVariantMap &flight) {
+    if (flight.isEmpty()) {
+        qInfo() << "查询结果：无此航班\n";
+        return;
+    }
+    qInfo() << "\n===== 单个航班详情 =====";
+    qInfo() << "航班号：" << flight["flightId"].toString();
+    qInfo() << "出发地：" << flight["departure"].toString();
+    qInfo() << "目的地：" << flight["destination"].toString();
+    qInfo() << "起飞时间：" << flight["departTime"].toString();
+    qInfo() << "降落时间：" << flight["arriveTime"].toString();
+    qInfo() << "票价：" << flight["price"].toDouble() << "元";
+    qInfo() << "总座位：" << flight["totalSeats"].toInt();
+    qInfo() << "剩余座位：" << flight["remainSeats"].toInt();
+    qInfo() << "======================\n";
+}
+
+// 辅助函数：打印航班列表（方便查看查询结果）
+void DBManager::printFlightList(const QVariantList &flightList) {
+    qInfo() << "\n===== 航班列表（共" << flightList.size() << "条）=====";
+    for (const auto &flightVar : flightList) {
+        QVariantMap flight = flightVar.toMap();
+        qInfo() << QString("航班号：%1 | 出发地：%2 | 目的地：%3 | 起飞时间：%4 | 票价：%5 元 | 剩余座位：%6")
+                       .arg(flight["flightId"].toString())
+                       .arg(flight["departure"].toString())
+                       .arg(flight["destination"].toString())
+                       .arg(flight["departTime"].toString())
+                       .arg(flight["price"].toDouble(), 0, 'f', 2)
+                       .arg(flight["remainSeats"].toInt());
+    }
+    qInfo() << "========================================\n";
 }

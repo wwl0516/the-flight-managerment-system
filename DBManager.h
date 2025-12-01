@@ -41,6 +41,9 @@ public:
     Q_INVOKABLE bool updateFlightSeats(const QString& Flight_id, int newRemainSeats);  // 更新剩余座位
     Q_INVOKABLE bool deleteFlight(const QString& Flight_id);    // 删除航班
 
+    Q_INVOKABLE void printFlight(const QVariantMap &flight);
+    Q_INVOKABLE void printFlightList(const QVariantList &flightList);
+
 signals:
     void connectionStateChanged(bool isConnected);
     void operateResult(bool success, const QString &msg);

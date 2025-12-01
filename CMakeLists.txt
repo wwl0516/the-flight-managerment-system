@@ -10,12 +10,16 @@ find_package(HuskarUI REQUIRED)
 
 find_package(Qt6 REQUIRED COMPONENTS Quick QuickEffects)
 
+find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick Widgets Sql)#Qt 数据库模块
+
 set(CMAKE_AUTORCC ON)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(appthe_flight_managerment_system
     main.cpp
+    DBManager.cpp
+    DBManager.h
 )
 
 qt_add_qml_module(appthe_flight_managerment_system
@@ -24,6 +28,9 @@ qt_add_qml_module(appthe_flight_managerment_system
     QML_FILES
     Login.qml
         RESOURCES images.qrc
+        SOURCES DBManager.h
+        QML_FILES
+        SOURCES DBManager.cpp
 
 )
 
@@ -38,10 +45,11 @@ set_target_properties(appthe_flight_managerment_system PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
-target_link_libraries(appthe_flight_managerment_system
-    PRIVATE Qt6::Quick
-    PRIVATE HuskarUI::Basic
-    PRIVATE Qt6::QuickEffects
+target_link_libraries(appthe_flight_managerment_system PRIVATE
+    Qt6::Quick
+    HuskarUI::Basic
+    Qt6::QuickEffects
+    Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::Widgets Qt6::Sql
 )
 
 include(GNUInstallDirs)

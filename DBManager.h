@@ -1,6 +1,7 @@
 #ifndef DBMANAGER_H
 #define DBMANAGER_H
 
+
 #include <QObject>
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -8,7 +9,11 @@
 #include <QDebug>
 #include <QVariant>
 #include <QDateTime>
-#include <QMutex>  // 线程安全锁
+#include <QMutex>
+#include <QCryptographicHash>
+#include <QRegularExpression>
+
+    // ... 其余代码保持不变
 
 // 数据库管理单例类
 class DBManager : public QObject

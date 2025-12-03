@@ -39,6 +39,8 @@ qt_add_qml_module(appthe_flight_managerment_system
     SOURCES 
     DBManager.cpp
     DBManager.h
+    SOURCES DBUser.h
+    SOURCES DBUser.cpp
 
 )
 

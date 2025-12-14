@@ -735,6 +735,7 @@ void DBManager::printFlightList(const QVariantList &flightList) {
     qInfo() << "========================================\n";
 }
 
+//管理员登录
 bool DBManager::verifyAdminLogin(const QString& adminName, const QString& password)
 {
     QMutexLocker locker(&m_mutex);

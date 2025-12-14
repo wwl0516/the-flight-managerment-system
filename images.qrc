@@ -4,5 +4,4 @@
         <file>register.png</file>
         <file>avatar_Amiya1145.jpg</file>
     </qresource>
-    <qresource prefix="/"/>
 </RCC>

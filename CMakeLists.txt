@@ -45,6 +45,7 @@ qt_add_qml_module(appthe_flight_managerment_system
     QML_FILES Pages/AdminChangeFlightInformation.qml
     QML_FILES Components/FlightInformationCard.qml
 
+
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

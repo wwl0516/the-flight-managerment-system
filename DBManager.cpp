@@ -56,8 +56,6 @@ bool DBManager::connectDB()
     QMutexLocker locker(&m_mutex);  // 线程安全
 
     if (m_db.isOpen()) {
-        // 连接已存在时，确保用户表已初始化
-        initUserTable();
         emit connectionStateChanged(true);
         emit operateResult(true, "数据库已连接！");
         return true;
@@ -72,8 +70,6 @@ bool DBManager::connectDB()
     bool success = m_db.open();
     if (success) {
         qInfo() << "[DB] 连接成功！DSN:" << m_dsn;
-        // 初始化用户表（确保表存在）
-        initUserTable();
         emit connectionStateChanged(true);
         emit operateResult(true, "数据库连接成功！");
     } else {
@@ -117,34 +113,7 @@ bool DBManager::isValidDateTimeFormat(const QString &dateStr)
     return dt.isValid();
 }
 
-// ========== 新增：用户表初始化 ==========
-void DBManager::initUserTable()
-{
-    if (!m_db.isOpen()) {
-        qCritical() << "[DB] 初始化用户表失败：数据库未连接！";
-        return;
-    }
-
-    QSqlQuery query(m_db);
-    // 创建用户表（t_users），确保表结构存在
-    QString createTableSql = R"(
-        CREATE TABLE IF NOT EXISTS t_users (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            email VARCHAR(255) NOT NULL UNIQUE,
-            username VARCHAR(50) NOT NULL UNIQUE,
-            password VARCHAR(64) NOT NULL,
-            create_time DATETIME DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-    )";
-
-    if (!query.exec(createTableSql)) {
-        qCritical() << "[DB] 初始化用户表失败：" << query.lastError().text();
-    } else {
-        qInfo() << "[DB] 用户表初始化成功（或已存在）";
-    }
-}
-
-// ========== 新增：邮箱格式验证 ==========
+// 邮箱格式验证
 bool DBManager::isValidEmailFormat(const QString& email)
 {
     // 标准邮箱正则表达式
@@ -153,7 +122,7 @@ bool DBManager::isValidEmailFormat(const QString& email)
     return match.hasMatch();
 }
 
-// ========== 新增：密码强度验证 ==========
+// 密码强度验证
 bool DBManager::isValidPasswordStrength(const QString& password)
 {
     // 至少8位，包含字母和数字（可根据需求调整）
@@ -175,8 +144,8 @@ bool DBManager::isValidPasswordStrength(const QString& password)
     return hasLetter && hasNumber;
 }
 
-// ========== 新增：用户名唯一性检查 ==========
-bool DBManager::isUsernameExists(const QString& username)
+// 用户名唯一性检查
+bool DBManager::isUsernameExists(const QString& User_name)
 {
     if (!m_db.isOpen()) {
         qCritical() << "[DB] 检查用户名失败：数据库未连接！";
@@ -184,8 +153,8 @@ bool DBManager::isUsernameExists(const QString& username)
     }
 
     QSqlQuery query(m_db);
-    query.prepare("SELECT username FROM t_users WHERE username = :username");
-    query.bindValue(":username", username);
+    query.prepare("SELECT User_name FROM user_info WHERE User_name = :User_name");
+    query.bindValue(":User_name", User_name);
 
     if (!query.exec()) {
         qCritical() << "[DB] 检查用户名失败：" << query.lastError().text();
@@ -195,8 +164,8 @@ bool DBManager::isUsernameExists(const QString& username)
     return query.next(); // 有结果则用户名已存在
 }
 
-// ========== 新增：邮箱唯一性检查 ==========
-bool DBManager::isEmailExists(const QString& email)
+// 邮箱唯一性检查
+bool DBManager::isEmailExists(const QString& Email)
 {
     if (!m_db.isOpen()) {
         qCritical() << "[DB] 检查邮箱失败：数据库未连接！";
@@ -204,8 +173,8 @@ bool DBManager::isEmailExists(const QString& email)
     }
 
     QSqlQuery query(m_db);
-    query.prepare("SELECT email FROM t_users WHERE email = :email");
-    query.bindValue(":email", email);
+    query.prepare("SELECT Email FROM user_info WHERE Email = :Email");
+    query.bindValue(":Email", Email);
 
     if (!query.exec()) {
         qCritical() << "[DB] 检查邮箱失败：" << query.lastError().text();
@@ -215,7 +184,7 @@ bool DBManager::isEmailExists(const QString& email)
     return query.next(); // 有结果则邮箱已存在
 }
 
-// ========== 新增：密码加密（SHA256） ==========
+// 密码加密（SHA256）
 QString DBManager::encryptPassword(const QString& password)
 {
     QByteArray byteArray = password.toUtf8();
@@ -225,8 +194,8 @@ QString DBManager::encryptPassword(const QString& password)
     return byteArray.toHex();
 }
 
-// ========== 新增：用户注册 ==========
-bool DBManager::userRegister(const QString& email, const QString& username, const QString& password)
+// 用户注册
+int DBManager::userRegister(const QString& Email, const QString& User_name, const QString& Password)
 {
     QMutexLocker locker(&m_mutex); // 线程安全
 
@@ -234,81 +203,81 @@ bool DBManager::userRegister(const QString& email, const QString& username, cons
     if (!m_db.isOpen()) {
         QString errMsg = "注册失败：数据库未连接！";
         emit userRegisterFailed(errMsg);
-        return false;
+        return 0;
     }
 
     // 2. 空值检查
-    if (email.isEmpty() || username.isEmpty() || password.isEmpty()) {
+    if (Email.isEmpty() || User_name.isEmpty() || Password.isEmpty()) {
         QString errMsg = "注册失败：邮箱、用户名、密码不能为空！";
         emit userRegisterFailed(errMsg);
-        return false;
+        return 5;
     }
 
     // 3. 邮箱格式验证
-    if (!isValidEmailFormat(email)) {
+    if (!isValidEmailFormat(Email)) {
         QString errMsg = "注册失败：邮箱格式错误！";
         emit userRegisterFailed(errMsg);
-        return false;
+        return 2;
     }
 
     // 4. 密码强度验证
-    if (!isValidPasswordStrength(password)) {
+    if (!isValidPasswordStrength(Password)) {
         QString errMsg = "注册失败：密码至少8位，且包含字母和数字！";
         emit userRegisterFailed(errMsg);
-        return false;
+        return 3;
     }
 
     // 5. 用户名唯一性检查
-    if (isUsernameExists(username)) {
-        QString errMsg = "注册失败：用户名 " + username + " 已存在！";
+    if (isUsernameExists(User_name)) {
+        QString errMsg = "注册失败：用户名 " + User_name + " 已存在！";
         emit userRegisterFailed(errMsg);
-        return false;
+        return 1;
     }
 
     // 6. 邮箱唯一性检查
-    if (isEmailExists(email)) {
-        QString errMsg = "注册失败：邮箱 " + email + " 已被注册！";
+    if (isEmailExists(Email)) {
+        QString errMsg = "注册失败：邮箱 " + Email + " 已被注册！";
         emit userRegisterFailed(errMsg);
-        return false;
+        return 4;
     }
 
     // 7. 加密密码
-    QString encryptedPwd = encryptPassword(password);
+    QString encryptedPwd = encryptPassword(Password);
 
     // 8. 插入用户数据
     QSqlQuery query(m_db);
     QString insertSql = R"(
-        INSERT INTO t_users (email, username, password)
-        VALUES (:email, :username, :password)
+        INSERT INTO user_info (Email, User_name, Password)
+        VALUES (:Email, :User_name, :Password)
     )";
 
     if (!query.prepare(insertSql)) {
         QString errMsg = "[DB] 注册预处理失败：" + query.lastError().text();
         qCritical() << errMsg;
         emit userRegisterFailed("注册失败：数据库操作错误！");
-        return false;
+        return 0;
     }
 
-    query.bindValue(":email", email);
-    query.bindValue(":username", username);
-    query.bindValue(":password", encryptedPwd);
+    query.bindValue(":Email", Email);
+    query.bindValue(":User_name", User_name);
+    query.bindValue(":Password", encryptedPwd);
 
     bool success = query.exec();
     if (success) {
-        qInfo() << "[DB] 用户 " << username << " 注册成功！";
-        emit userRegisterSuccess(username);
+        qInfo() << "[DB] 用户 " << User_name << " 注册成功！";
+        emit userRegisterSuccess(User_name);
         emit operateResult(true, "注册成功！");
+        return 5;
     } else {
         QString errMsg = "[DB] 注册插入失败：" + query.lastError().text();
         qCritical() << errMsg;
         emit userRegisterFailed("注册失败：" + query.lastError().text());
+        return 6;
     }
-
-    return success;
 }
 
-// ========== 新增：用户登录 ==========
-bool DBManager::userLogin(const QString& username, const QString& password)
+// 用户登录
+int DBManager::userLogin(const QString& User_name, const QString& Password)
 {
     QMutexLocker locker(&m_mutex); // 线程安全
 
@@ -316,57 +285,57 @@ bool DBManager::userLogin(const QString& username, const QString& password)
     if (!m_db.isOpen()) {
         QString errMsg = "登录失败：数据库未连接！";
         emit userLoginFailed(errMsg);
-        return false;
+        return 0;
     }
 
     // 2. 空值检查
-    if (username.isEmpty() || password.isEmpty()) {
+    if (User_name.isEmpty() || Password.isEmpty()) {
         QString errMsg = "登录失败：用户名或密码不能为空！";
         emit userLoginFailed(errMsg);
-        return false;
+        return 3;
     }
 
     // 3. 查询用户信息
     QSqlQuery query(m_db);
-    query.prepare("SELECT id, email, password FROM t_users WHERE username = :username");
-    query.bindValue(":username", username);
+    query.prepare("SELECT Uid, Email, Password FROM user_info WHERE User_name = :User_name");
+    query.bindValue(":User_name", User_name);
 
     if (!query.exec()) {
         QString errMsg = "[DB] 登录查询失败：" + query.lastError().text();
         qCritical() << errMsg;
         emit userLoginFailed("登录失败：数据库操作错误！");
-        return false;
+        return 0;
     }
 
     // 4. 检查用户是否存在
     if (!query.next()) {
         emit userLoginFailed("登录失败：用户名不存在！");
-        return false;
+        return 1;
     }
 
     // 5. 验证密码
-    QString storedPwd = query.value("password").toString();
-    QString inputPwd = encryptPassword(password);
+    QString storedPwd = query.value("Password").toString();
+    QString inputPwd = encryptPassword(Password);
     if (storedPwd != inputPwd) {
         emit userLoginFailed("登录失败：密码错误！");
-        return false;
+        return 2;
     }
 
     // 6. 更新用户登录状态
     m_isUserLoggedIn = true;
-    m_currentUserId = query.value("id").toInt();
-    m_currentUserName = username;
-    m_currentUserEmail = query.value("email").toString();
+    m_currentUserId = query.value("Uid").toInt();
+    m_currentUserName = User_name;
+    m_currentUserEmail = query.value("Email").toString();
 
-    qInfo() << "[DB] 用户 " << username << " 登录成功！";
+    qInfo() << "[DB] 用户 " << User_name << " 登录成功！";
     emit userLoginStateChanged(true);
-    emit userLoginSuccess(username);
+    emit userLoginSuccess(User_name);
     emit operateResult(true, "登录成功！");
 
-    return true;
+    return 4;
 }
 
-// ========== 新增：用户登出 ==========
+// 用户登出
 void DBManager::userLogout()
 {
     QMutexLocker locker(&m_mutex); // 线程安全
@@ -383,28 +352,99 @@ void DBManager::userLogout()
     emit operateResult(true, "登出成功！");
 }
 
-// ========== 新增：用户状态查询及getter方法 ==========
+// 忘记密码
+int DBManager::forgetPassword(const QString& Email, const QString& verifyCode, const QString& newPassword)
+{
+    QMutexLocker locker(&m_mutex); // 线程安全
+
+    // 1. 检查数据库连接状态
+    if (!isConnected()) {
+        emit passwordResetFailed("数据库未连接，请先连接数据库");
+        return 0;
+    }
+
+    // 2. 验证邮箱格式是否合法
+    if (!isValidEmailFormat(Email)) {
+        emit passwordResetFailed("邮箱格式不合法，请输入正确的邮箱");
+        return 1;
+    }
+
+    // 3. 检查邮箱是否已注册（不存在则无法重置）
+    if (!isEmailExists(Email)) {
+        emit passwordResetFailed("该邮箱未注册，无法重置密码");
+        return 2;
+    }
+
+    // 4. 验证验证码是否为固定的0000
+    if (verifyCode != "0000") {
+        emit passwordResetFailed("验证码错误，正确验证码为0000");
+        return 3;
+    }
+
+    // 5. 验证新密码强度（沿用原有密码强度规则）
+    if (!isValidPasswordStrength(newPassword)) {
+        emit passwordResetFailed("密码强度不足（至少8位，包含字母和数字）");
+        return 4;
+    }
+
+    // 6. 从数据库中获取用户名（用于后续成功信号）
+    QSqlQuery query(m_db);
+    query.prepare("SELECT User_name FROM user_info WHERE Email = :Email");
+    query.bindValue(":Email", Email);
+    if (!query.exec()) {
+        qDebug() << "查询用户信息失败：" << query.lastError().text();
+        emit passwordResetFailed("查询用户信息失败，请稍后重试");
+        return 5;
+    }
+    if (!query.next()) {
+        emit passwordResetFailed("该邮箱未注册，无法重置密码");
+        return 2;
+    }
+    QString username = query.value("User_name").toString();
+
+    // 7. 加密新密码（沿用原有SHA256加密逻辑）
+    QString encryptedPwd = encryptPassword(newPassword);
+
+    // 8. 更新数据库中的密码
+    query.prepare("UPDATE user_info SET Password = :newPassword WHERE Email = :Email");
+    query.bindValue(":newPassword", encryptedPwd);
+    query.bindValue(":Email", Email);
+    if (!query.exec()) {
+        qDebug() << "更新密码失败：" << query.lastError().text();
+        emit passwordResetFailed("密码重置失败，请稍后重试");
+        return 5;
+    }
+
+    // 9. 密码重置成功，发送信号
+    emit passwordResetSuccess(username);
+    return 7;
+}
+
+// 用户状态查询
 bool DBManager::isUserLoggedIn() const
 {
     return m_isUserLoggedIn;
 }
 
+// 获取Uid
 int DBManager::getCurrentUserId() const
 {
     return m_currentUserId;
 }
 
+// 获取用户名
 QString DBManager::getCurrentUserName() const
 {
     return m_currentUserName;
 }
 
+// 获取邮箱
 QString DBManager::getCurrentUserEmail() const
 {
     return m_currentUserEmail;
 }
 
-// ========== 原有航班相关方法（保持不变） ==========
+// 查询所有航班
 QVariantList DBManager::queryAllFlights()
 {
     QMutexLocker locker(&m_mutex);
@@ -453,6 +493,7 @@ QVariantList DBManager::queryAllFlights()
     return result;
 }
 
+// 按航班号查询航班
 QVariantMap DBManager::queryFlightByNum(const QString& flightId)
 {
     QMutexLocker locker(&m_mutex);
@@ -496,6 +537,7 @@ QVariantMap DBManager::queryFlightByNum(const QString& flightId)
     return result;
 }
 
+// 添加航班
 bool DBManager::addFlight(
     const QString& flightId,
     const QString& departure,
@@ -582,6 +624,7 @@ bool DBManager::addFlight(
     return success;
 }
 
+// 更新航班价格
 bool DBManager::updateFlightPrice(const QString& Flight_id, double newPrice)
 {
     QMutexLocker locker(&m_mutex);
@@ -622,6 +665,7 @@ bool DBManager::updateFlightPrice(const QString& Flight_id, double newPrice)
     return success;
 }
 
+// 更新剩余座位数
 bool DBManager::updateFlightSeats(const QString& Flight_id, int newRemainSeats)
 {
     QMutexLocker locker(&m_mutex);
@@ -669,6 +713,7 @@ bool DBManager::updateFlightSeats(const QString& Flight_id, int newRemainSeats)
     return success;
 }
 
+// 删除航班
 bool DBManager::deleteFlight(const QString& Flight_id)
 {
     QMutexLocker locker(&m_mutex);
@@ -703,6 +748,7 @@ bool DBManager::deleteFlight(const QString& Flight_id)
     return success;
 }
 
+// 打印航班（id）
 void DBManager::printFlight(const QVariantMap &flight) {
     if (flight.isEmpty()) {
         qInfo() << "查询结果：无此航班\n";
@@ -720,6 +766,7 @@ void DBManager::printFlight(const QVariantMap &flight) {
     qInfo() << "======================\n";
 }
 
+// 打印航班列表
 void DBManager::printFlightList(const QVariantList &flightList) {
     qInfo() << "\n===== 航班列表（共" << flightList.size() << "条）=====";
     for (const auto &flightVar : flightList) {
@@ -735,6 +782,7 @@ void DBManager::printFlightList(const QVariantList &flightList) {
     qInfo() << "========================================\n";
 }
 
+// 管理员登录验证
 bool DBManager::verifyAdminLogin(const QString& adminName, const QString& password)
 {
     QMutexLocker locker(&m_mutex);
@@ -781,11 +829,13 @@ bool DBManager::verifyAdminLogin(const QString& adminName, const QString& passwo
     }
 }
 
+// 是否管理员登录
 bool DBManager::isAdminLoggedIn() const
 {
     return m_isAdminLoggedIn;
 }
 
+// 管理员登出
 void DBManager::adminLogout()
 {
     m_isAdminLoggedIn = false;
@@ -797,11 +847,13 @@ void DBManager::adminLogout()
     qDebug() << "Admin logged out";
 }
 
+// 获取当前管理员名
 QString DBManager::getCurrentAdminName() const
 {
     return m_currentAdminName;
 }
 
+// 获取当前管理员Id
 int DBManager::getCurrentAdminId() const
 {
     return m_currentAdminId;

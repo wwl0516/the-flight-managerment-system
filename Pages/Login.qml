@@ -845,7 +845,8 @@ Window {
 
         //管理员登录
         if (success) {
-            const adminMainComponent = Qt.createComponent("AdminMain.qml");
+            //登录到管理员界面
+            const adminMainComponent = Qt.createComponent("");
             if(adminMainComponent.status === Component.Ready) {
                 const mainWindow = adminMainComponent.createObject(null);
                 mainWindow.visible = true;

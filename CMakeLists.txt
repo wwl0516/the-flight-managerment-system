@@ -34,7 +34,6 @@ qt_add_qml_module(appthe_flight_managerment_system
     Pages/Main.qml
     Pages/MyFavouriteFlight.qml
     Pages/AboutUs.qml
-    Pages/AdminMain.qml
     Components/SharedCard.qml
     RESOURCES images.qrc
     SOURCES 

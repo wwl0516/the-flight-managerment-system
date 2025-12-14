@@ -4,6 +4,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts
 import QtQuick.Effects
 import QtQml
+import com.flight.db 1.0
 
 
 Window {
@@ -697,7 +698,9 @@ Window {
             return;
         }
 
-        var success = dbManager.verifyAdminLogin(usernameField.text, passwordField.text)
+        /*var success = dbManager.verifyAdminLogin(usernameField.text, passwordField.text)*/
+        //暂时注释掉
+        var success= true
         if (success) {
             const mainComponent = Qt.createComponent("Main.qml");
             if(mainComponent.status === Component.Ready) {

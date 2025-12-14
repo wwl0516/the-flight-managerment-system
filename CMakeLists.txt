@@ -40,8 +40,8 @@ qt_add_qml_module(appthe_flight_managerment_system
     DBManager.cpp
     DBManager.h
     QML_FILES Pages/Discovery.qml
-    SOURCES DBUser.h
-    SOURCES DBUser.cpp
+    SOURCES
+    SOURCES
 
 )
 

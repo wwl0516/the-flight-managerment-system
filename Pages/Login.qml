@@ -1,4 +1,4 @@
-import QtQuick
+  import QtQuick
 import HuskarUI.Basic
 import QtQuick.Controls 2.15
 import QtQuick.Layouts
@@ -542,7 +542,7 @@ Window {
 
             RowLayout{
                 Text {
-                    text: "请输入用户名"
+                    text: "请输入注册的邮箱"
                     wrapMode: Text.WordWrap
                     width: parent.width
                     color: "#333333"
@@ -564,7 +564,20 @@ Window {
             TextField {
                 id: resetEmailInput
                 width: parent.width
-                placeholderText: "请输入用户名"
+                placeholderText: "请输入注册的邮箱"
+                height: 30
+                background: Rectangle {
+                    radius: 6
+                    border.width: 1
+                    border.color: resetEmailInput.activeFocus ? "#007bff" : "#dddddd"
+                    color: "white"
+                }
+            }
+
+            TextField{
+                id:captchaInput
+                width:parent.width
+                placeholderText: "请输入验证码"
                 height: 30
                 background: Rectangle {
                     radius: 6
@@ -618,7 +631,7 @@ Window {
         dim: true
         closePolicy: Dialog.NoAutoClose
         Text{
-            id:loginErrorText
+            id:errorText
             anchors.centerIn: parent
             text:"登陆失败，用户名或密码错误"
             state:"loginError"
@@ -626,36 +639,93 @@ Window {
                 State{
                     name:"loginError"
                     PropertyChanges {
-                        target: loginErrorText
+                        target: errorText
                         text:"登陆失败，用户名或密码错误"
                     }
                 },
                 State{
-                    name:"registerError_passwords_different"
+                    name:"passwords_different"
                     PropertyChanges {
-                        target: loginErrorText
+                        target: errorText
                         text:"密码不一致"
                     }
                 },
                 State{
                     name:"cannot_find_username"
                     PropertyChanges {
-                        target: loginErrorText
+                        target: errorText
                         text:"用户名不存在"
                     }
                 },
                 State{
                     name:"too_short_password"
                     PropertyChanges {
-                        target: loginErrorText
+                        target: errorText
                         text:"密码不能少于6位"
+                    }
+                },
+                State{
+                    name:"empty_username"
+                    PropertyChanges {
+                        target: errorText
+                        text:"用户名为空"
+
+                    }
+                },
+                State{
+                    name:"empty_password"
+                    PropertyChanges {
+                        target: errorText
+                        text:"密码为空"
+
+                    }
+                },
+                State{
+                    name:"username_already_exists"
+                    PropertyChanges {
+                        target: errorText
+                        text:"注册失败，用户名已存在"
+
+                    }
+                },
+                State{
+                    name:"empty_email"
+                    PropertyChanges {
+                        target: errorText
+                        text:"邮箱为空"
+
                     }
                 }
 
             ]
         }
+    }
 
+    Dialog{
+        id:messageDialog
+        title: "提示"
+        modal: true
+        standardButtons: Dialog.Ok
+        anchors.centerIn: parent
+        width: 200
+        dim: true
+        closePolicy: Dialog.NoAutoClose
+        Text{
+            id:messageText
+            anchors.centerIn: parent
+            text:"注册成功"
+            state: "register_success"
+            states:[
+                State{
+                    name:"register_success"
+                    PropertyChanges {
+                        target: messageText
+                        text:"注册成功"
 
+                    }
+                }
+            ]
+        }
     }
 
     Loader{
@@ -689,69 +759,114 @@ Window {
 
 
     function handleAction() {
+        //用户名非空
         if (usernameInput.text === "") {
-            showError("请输入用户名");
+            errorText.state="empty_username"
+            errorDialog.open()
             return;
         }
+        //密码非空
         if (passwordInput.text === "") {
-            showError("请输入密码");
+            errorText.state="empty_password"
+            errorDialog.open()
             return;
         }
 
-        var success = DBManager.verifyAdminLogin(usernameInput.text, passwordInput.text)
-        //暂时注释掉
-        //var success= true
+        //注册特殊检测
+        if(dynamicBackground.state===registerState)
+        {
+            //邮箱非空
+            if(emailInput.text==="")
+            {
+                errorText.state="empty_email"
+                errorDialog.open()
+                return;
+            }
+
+            //密码要一致
+            if(passwordInput.text!==confirmPasswordInput.text)
+            {
+                errorText.state="passwords_different"
+                errorDialog.open()
+                return ;
+            }
+        }
+
+        var success=false
+        if(dynamicBackground.state===adminState)
+        {
+            success= DBManager.verifyAdminLogin(usernameInput.text, passwordInput.text)
+        }
+        else if(dynamicBackground.state===loginState)
+        {
+            success=DBManager.userLogin(usernameInput.text, passwordInput.text)
+        }
+        else
+        {
+            success=DBManager.userRegister(emailInput.text,usernameInput.text,passwordInput.text)
+        }
+
+        //注册处理
+        if(dynamicBackground.state===registerState)
+        {
+            if(success)
+            {
+                messageText.state="register_success"
+                messageDialog.open()
+                return ;
+            }
+            else
+            {
+                errorText.state="username_already_exists"
+                errorDialog.open()
+                return ;
+            }
+        }
+
+        //用户登录
+        if(dynamicBackground.state===loginState)
+        {
+            if (success) {
+                const mainComponent = Qt.createComponent("Main.qml");
+                if(mainComponent.status === Component.Ready) {
+                    const mainWindow = mainComponent.createObject(null);
+                    mainWindow.visible = true;
+                }
+                loginWindow.close();
+                return ;
+            }
+            else
+            {
+                errorText.state="loginError"
+                errorDialog.open()
+                return ;
+            }
+        }
+
+        //管理员登录
         if (success) {
-            const mainComponent = Qt.createComponent("Main.qml");
-            if(mainComponent.status === Component.Ready) {
-                const mainWindow = mainComponent.createObject(null);
+            //登录到管理员界面
+            const adminMainComponent = Qt.createComponent("");
+            if(adminMainComponent.status === Component.Ready) {
+                const mainWindow = adminMainComponent.createObject(null);
                 mainWindow.visible = true;
             }
             loginWindow.close();
         }
+        else
+        {
+            errorText.state="loginError"
+            errorDialog.open()
+            return ;
+        }
+
+        errorText.state="loginError"
+        errorDialog.open()
+        return ;
+
     }
 
-    function validateLogin() {
-        if (usernameInput.text.trim() === "") {
-            showError("请输入用户名")
 
-            return false
-        }
-        if (passwordInput.text === "") {
-            showError("请输入密码")
-            return false
-        }
-        return true
-    }
-
-    function validateRegister() {
-        if (usernameInput.text.trim() === "") {
-            showError("请输入用户名")
-
-            return false
-        }
-        if (emailInput.text.trim() === "") {
-            showError("请输入邮箱")
-            return false
-        }
-        if (!isValidEmail(emailInput.text)) {
-            showError("请输入有效的邮箱地址")
-            return false
-        }
-        if (passwordInput.text === "") {
-            showError("请输入密码")
-            return false
-        }
-        if (passwordInput.text.length < 6) {
-            showError("密码长度至少6位")
-            return false
-        }
-        if (passwordInput.text !== confirmPasswordInput.text) {
-            showError("两次输入的密码不一致")
-            return false
-        }
-        return true
-    }
 
     function isValidEmail(email) {
         var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

@@ -10,12 +10,6 @@ void test(DBManager* dbManager){
     qInfo() << "=== 开始测试 DBManager ===";
 
     qInfo() << "\n1. 测试连接数据库...";
-    bool connectSuccess = dbManager->connectDB();
-    if (!connectSuccess) {
-        qCritical() << "连接失败！终止测试";
-        return;  // 连接失败直接退出，无需后续测试
-    }
-
     // 测试数据（可根据你的数据库调整，确保航班号唯一）
     const QString testFlightId = "TEST1234";  // 测试航班号（避免与已有航班冲突）
     const QString testDeparture = "广州";
@@ -82,6 +76,13 @@ int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
 
+    // 获取DBManager单例
+    DBManager *dbManager = DBManager::getInstance(&app);
+    bool connectSuccess = dbManager->connectDB();
+    if (!connectSuccess) {
+        qCritical() << "数据库连接失败！=";
+    }
+
     QQmlApplicationEngine engine;
 
     // ========== 核心：注册DBManager为QML单例（修复捕获问题） ==========
@@ -108,9 +109,7 @@ int main(int argc, char *argv[])
 
     engine.loadFromModule("the_flight_managerment_system", "Login");
 
-    // 获取DBManager单例并执行测试（这里也可以用QGuiApplication::instance()）
-    DBManager *dbManager = DBManager::getInstance(&app);
-    test(dbManager);
+    //test(dbManager);
 
     return app.exec();
 }

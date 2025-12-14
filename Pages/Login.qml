@@ -698,9 +698,9 @@ Window {
             return;
         }
 
-        /*var success = dbManager.verifyAdminLogin(usernameField.text, passwordField.text)*/
+        var success = DBManager.verifyAdminLogin(usernameInput.text, passwordInput.text)
         //暂时注释掉
-        var success= true
+        //var success= true
         if (success) {
             const mainComponent = Qt.createComponent("Main.qml");
             if(mainComponent.status === Component.Ready) {

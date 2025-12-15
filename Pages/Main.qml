@@ -6,8 +6,20 @@ import QtQuick.Controls
 import com.flight.db 1.0
 
 HusWindow{
+    id:main_window
+
+    property var loginWindowRef: null
+
+    Connections{
+        target:DBManager
+
+        onUserLogoutSuccess:{
+            loginWindowRef.visible=true
+            main_window.destroy()
+        }
+    }
+
     property var initModel :[]
-    id:mainWindow
     width: 1080
     height: 720
     maximumWidth: 1080
@@ -127,6 +139,9 @@ HusWindow{
                         }
                         if(key==="search_flight"){
                             right_page.source="SearchFlight.qml"
+                        }
+                        if(key==="my_settings"){
+                            right_page.source="Settings.qml"
                         }
 
                         console.log("jimi");

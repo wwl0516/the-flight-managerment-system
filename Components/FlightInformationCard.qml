@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Layouts
+import QtQuick.Controls
 import HuskarUI.Basic
 
 
@@ -11,19 +12,18 @@ HusRectangle{
         "destination":"上海",
         "depart_time":"114514",
         "arrive_time":"114514",
-        "price":0,
+        "price":"",
         "total_seats":3,
-        "remain_seats":2
+        "remain_seats":2,
+        "status":""
     }
     anchors.fill: parent
     radius:20
+    color:"green"
     ColumnLayout{
         height: parent.height
         width: parent.width
         RowLayout{
-            //Layout.fillWidth: true
-            //Layout.preferredHeight: 30
-            //Layout.maximumHeight: 30
             Layout.leftMargin: 30
             Layout.rightMargin: 30
             Layout.topMargin: 15
@@ -104,11 +104,42 @@ HusRectangle{
             Layout.leftMargin: 30
             Layout.rightMargin: 30
             spacing: 30
+            //剩余座位
             HusRectangle{
                 Layout.fillHeight: true
                 Layout.preferredWidth: 100
                 color: "#FF999999"
                 Layout.alignment: Qt.AlignVCenter
+                radius: 10
+            }
+            //状态
+            HusRectangle{
+                Layout.fillHeight: true
+                Layout.preferredWidth: 100
+                color:"blue"
+                Layout.alignment: Qt.AlignVCenter
+                radius: 10
+            }
+            //收藏按钮
+            HusIconText{
+                Layout.fillHeight: true
+                Layout.preferredWidth: 30
+                iconSource: HusIcon.HeartOutlined
+                iconSize: parent.height
+                colorIcon: "red"
+            }
+
+            //空白占位符
+            Item{
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+            }
+            //价格&购买按钮
+            HusButton{
+                text: qsTr(card_data.price)
+                type: HusButton.Type_Primary
+                Layout.preferredWidth: 100
+                //onvis  : text=qsTr("购买")
             }
         }
     }

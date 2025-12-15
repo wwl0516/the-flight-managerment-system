@@ -71,8 +71,9 @@ ColumnLayout{
                 Layout.preferredWidth: 280
                 Layout.maximumWidth: 280
                 Layout.fillHeight: true
+
                 placeholderText: qsTr("请选择始发时间")
-                format: qsTr("yyyy-MM-dd hh:mm:ss")
+                format: qsTr("yyyy-MM-dd hh:mm")
             }
         }
     }

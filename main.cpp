@@ -5,7 +5,7 @@
 #include <QQmlContext>
 #include "HuskarUI/husapp.h"
 #include "DBManager.h"
-
+#include <QFile>
 void test(DBManager* dbManager){
     qInfo() << "=== 开始测试 DBManager ===";
 
@@ -97,6 +97,7 @@ int main(int argc, char *argv[])
             return DBManager::getInstance(QGuiApplication::instance());
         }
         );
+    qmlRegisterSingletonType(QUrl("qrc:/GlobalSettings.qml"),"com.flight.globalVars",1,0,"GlobalSettings");
 
     // 原有逻辑保持不变
     HusApp::initialize(&engine);

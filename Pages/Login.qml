@@ -9,6 +9,7 @@ import com.flight.db 1.0
 
 Window {
     id: loginWindow
+    objectName: "login_window"
     width: 800
     height: 450
     visible: controlSignal
@@ -891,10 +892,12 @@ Window {
             if (success===4) {
                 const mainComponent = Qt.createComponent("Main.qml");
                 if(mainComponent.status === Component.Ready) {
-                    const mainWindow = mainComponent.createObject(null);
+                    const mainWindow = mainComponent.createObject(loginWindow,{
+                                                                      objectName:"main_window",
+                                                                  loginWindowRef:loginWindow});
                     mainWindow.visible = true;
                 }
-                loginWindow.close();
+                loginWindow.visible=false;
                 return ;
             }
             else

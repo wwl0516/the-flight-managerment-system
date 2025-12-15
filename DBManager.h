@@ -41,6 +41,7 @@ public:
     Q_INVOKABLE int getCurrentAdminId() const;     // 获取当前管理员ID
 
     Q_INVOKABLE QVariantList queryAllFlights();                // 查询所有航班
+    Q_INVOKABLE QVariantList queryFlightsByCondition(const QString& departure, const QString& destination, const QString& departDate);  // 按地点，日期查询
     Q_INVOKABLE QVariantMap queryFlightByNum(const QString& Flight_id);  // 按航班号查询
     Q_INVOKABLE bool addFlight(
         const QString& Flight_id,

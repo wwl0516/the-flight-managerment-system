@@ -494,6 +494,74 @@ QVariantList DBManager::queryAllFlights()
     return result;
 }
 
+QVariantList DBManager::queryFlightsByCondition(const QString& departure, const QString& destination, const QString& departDate)
+{
+    QMutexLocker locker(&m_mutex);
+    QVariantList result;
+
+    if (!m_db.isOpen()) {
+        emit operateResult(false, "查询失败：数据库未连接！");
+        return result;
+    }
+
+    QString sql = "SELECT * FROM flights";
+    QList<QString> conditions;
+    QVariantMap params; // 存储参数绑定（键：参数名，值：参数值）
+
+    // 处理目的地条件（非空则添加）
+    if (!destination.isEmpty()) {
+        conditions.append("Destination = :destination");
+        params[":destination"] = destination;
+    }
+
+    // 处理出发日期条件（非空则添加，匹配日期部分，忽略时间）
+    if (!departDate.isEmpty()) {
+        // MySQL：DATE(depart_time) 提取日期部分
+        conditions.append("DATE(depart_time) = :departDate");
+        params[":departDate"] = departDate;
+    }
+
+    // 拼接WHERE条件（多个条件用AND连接）
+    if (!conditions.isEmpty()) {
+        sql += " WHERE " + conditions.join(" AND ");
+    }
+
+    sql += " ORDER BY depart_time ASC";
+
+    // 执行查询
+    QSqlQuery query(m_db);
+    query.prepare(sql);
+
+    // 绑定参数（遍历params，给SQL语句的参数赋值）
+    for (auto it = params.constBegin(); it != params.constEnd(); ++it) {
+        query.bindValue(it.key(), it.value());
+    }
+
+    if (!query.exec()) {
+        qDebug() << "查询航班失败：" << query.lastError().text();
+        qDebug() << "执行的SQL：" << sql;
+        return result;
+    }
+
+    while (query.next()) {
+        QVariantMap flightMap;
+        // 封装航班字段
+        flightMap["Flight_id"] = query.value("Flight_id").toString();
+        flightMap["Departure"] = query.value("Departure").toString();
+        flightMap["Destination"] = query.value("Destination").toString();
+        flightMap["depart_time"] = query.value("depart_time").toString();
+        flightMap["arrive_time"] = query.value("arrive_time").toString();
+        flightMap["price"] = query.value("price").toDouble();
+        flightMap["total_seats"] = query.value("total_seats").toInt();
+        flightMap["remain_seats"] = query.value("remain_seats").toInt();
+        flightMap["status"] = query.value("status").toString();
+
+        result.append(flightMap);
+    }
+
+    return result;
+}
+
 // 按航班号查询航班
 QVariantMap DBManager::queryFlightByNum(const QString& flightId)
 {

@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
         []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
 
-    engine.loadFromModule("the_flight_managerment_system", "Login");
+    engine.loadFromModule("the_flight_managerment_system", "RootContainer");
 
     //test(dbManager);
 

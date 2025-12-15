@@ -46,7 +46,7 @@ ColumnLayout{
                 radiusBg.all: 5
                 iconSource: HusIcon.SearchOutlined
                 text: qsTr("搜索")
-                onClicked: {}
+                onClicked: searchFlight()
             }
         }
 
@@ -58,6 +58,7 @@ ColumnLayout{
             Layout.fillWidth: true
 
             HusSelect{
+                id:departure
                 Layout.preferredWidth: 180
                 Layout.maximumHeight: 180
                 Layout.fillHeight: true
@@ -70,6 +71,7 @@ ColumnLayout{
                 onActivated: search_data.departure=currentValue
             }
             HusSelect{
+                id:destination
                 Layout.preferredWidth: 180
                 Layout.maximumWidth: 180
                 Layout.fillHeight: true
@@ -86,8 +88,10 @@ ColumnLayout{
                 Layout.preferredWidth: 280
                 Layout.maximumWidth: 280
                 Layout.fillHeight: true
-                placeholderText: qsTr("请选择始发时间")
-                format: qsTr("yyyy-MM-dd hh:mm:ss")
+                datePickerMode: HusDateTimePicker.Mode_Day
+                showTime: false
+                placeholderText: qsTr("请选择始发日期")
+                format: qsTr("yyyy-MM-dd")
                 onTextChanged: search_data.depart_time=text
             }
         }
@@ -98,6 +102,24 @@ ColumnLayout{
     Item{
         Layout.fillHeight: true
         Layout.fillWidth: true
+    }
+
+    function searchFlight(){
+        //优先处理航班号
+        if(search_my_flight_input.text!==""){
+            let flight =DBManager.queryFlightByNum(search_my_flight_input.text)
+            return ;
+        }
+
+        var departureText=departure.displayText==="起始地"?"":departure.displayText
+        var destinationText=destination.displayText==="目的地"?"":destination.displayText
+
+        //console.log(departureText)
+        //console.log(destinationText)
+        //console.log(pick.text)
+        let flightList=DBManager.queryFlightsByCondition(departureText,destinationText,pick.text)
+
+
     }
 
 }

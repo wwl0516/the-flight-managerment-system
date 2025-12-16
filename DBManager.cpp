@@ -563,10 +563,10 @@ QVariantList DBManager::queryFlightsByCondition(const QString& departure, const 
 }
 
 // 按航班号查询航班
-QVariantMap DBManager::queryFlightByNum(const QString& flightId)
+QVariantList DBManager::queryFlightByNum(const QString& flightId)
 {
     QMutexLocker locker(&m_mutex);
-    QVariantMap result;
+    QVariantList result;
 
     if (!m_db.isOpen()) {
         emit operateResult(false, "查询失败：数据库未连接！");
@@ -591,16 +591,19 @@ QVariantMap DBManager::queryFlightByNum(const QString& flightId)
 
     query.bindValue(":flightId", flightId);
     if (query.exec() && query.next()) {
-        result["flightId"] = query.value("Flight_id").toString();
-        result["departure"] = query.value("Departure").toString();
-        result["destination"] = query.value("Destination").toString();
-        result["departTime"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-        result["arriveTime"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-        result["status"] = query.value("status").toString();
-        result["price"] = query.value("price").toDouble();
-        result["totalSeats"] = query.value("total_seats").toInt();
-        result["remainSeats"] = query.value("remain_seats").toInt();
+        QVariantMap flightMap;
+        flightMap["flightId"] = query.value("Flight_id").toString();
+        flightMap["departure"] = query.value("Departure").toString();
+        flightMap["destination"] = query.value("Destination").toString();
+        flightMap["departTime"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        flightMap["arriveTime"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        flightMap["status"] = query.value("status").toString();
+        flightMap["price"] = query.value("price").toDouble();
+        flightMap["totalSeats"] = query.value("total_seats").toInt();
+        flightMap["remainSeats"] = query.value("remain_seats").toInt();
         emit operateResult(true, "查询成功！");
+
+        result.append(flightMap);
     } else {
         emit operateResult(false, "查询失败：未找到该航班或查询出错！");
     }
@@ -853,6 +856,149 @@ bool DBManager::deleteFlight(const QString& Flight_id)
         emit operateResult(false, errMsg);
     }
     return success;
+}
+
+// 收藏航班
+bool DBManager::collectFlight(int userId, const QString& flightId, const QString& createTime)
+{
+    QMutexLocker locker(&m_mutex);
+
+    if (!m_db.isOpen()) {
+        emit operateResult(false, "删除失败：数据库未连接！");
+        return false;
+    }
+
+    if (isFlightCollected(userId, flightId)) {
+        emit operateResult(false, "已收藏该航班");
+        return false;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare(R"(
+        INSERT INTO user_collect_flights (user_id, flight_id, create_time)
+        VALUES (:user_id, :flight_id, :create_time)
+    )");
+    query.bindValue(":user_id", userId);
+    query.bindValue(":flight_id", flightId);
+    query.bindValue(":create_time", createTime);
+
+    if (!query.exec()) {
+        qDebug() << "收藏航班失败：" << query.lastError().text();
+        emit operateResult(false, "收藏航班失败：" + query.lastError().text());
+        return false;
+    }
+
+    emit operateResult(true, "收藏航班成功");
+    return true;
+}
+
+// 取消收藏航班
+bool DBManager::cancelCollectFlight(int userId, const QString& flightId)
+{
+    QMutexLocker locker(&m_mutex);
+
+    if (!m_db.isOpen()) {
+        emit operateResult(false, "取消收藏失败：数据库未连接！");
+        return false;
+    }
+
+    if (!isFlightCollected(userId, flightId)) {
+        emit operateResult(false, "未收藏该航班，无需取消");
+        return false;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare(R"(
+        DELETE FROM user_collect_flights
+        WHERE user_id = :user_id AND flight_id = :flight_id
+    )");
+    query.bindValue(":user_id", userId);
+    query.bindValue(":flight_id", flightId);
+
+    if (!query.exec()) {
+        qDebug() << "取消收藏失败：" << query.lastError().text();
+        emit operateResult(false, "取消收藏失败：" + query.lastError().text());
+        return false;
+    }
+
+    emit operateResult(true, "取消收藏成功");
+    return true;
+}
+
+// 查询用户收藏的所有航班
+QVariantList DBManager::queryCollectedFlights(int userId)
+{
+    QMutexLocker locker(&m_mutex);
+    QVariantList flightList;
+
+    if (!m_db.isOpen()) {
+        emit operateResult(false, "查询失败：数据库未连接！");
+        return flightList;
+    }
+    if (userId <= 0) {
+        emit operateResult(false, "查询失败：用户Id非法！");
+        return flightList;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare(R"(
+        SELECT f.* FROM flight f
+        INNER JOIN user_collect_flights ucf ON f.Flight_id = ucf.flight_id
+        WHERE ucf.user_id = :user_id
+        ORDER BY ucf.create_time DESC
+    )");
+    query.bindValue(":user_id", userId);
+
+    if (!query.exec()) {
+        qDebug() << "查询收藏航班失败：" << query.lastError().text();
+        return flightList;
+    }
+
+    while (query.next()) {
+        QVariantMap flightMap;
+        flightMap["Flight_id"] = query.value("Flight_id").toString();
+        flightMap["Departure"] = query.value("Departure").toString();
+        flightMap["Destination"] = query.value("Destination").toString();
+        flightMap["depart_time"] = query.value("depart_time").toString();
+        flightMap["arrive_time"] = query.value("arrive_time").toString();
+        flightMap["price"] = query.value("price").toDouble();
+        flightMap["total_seats"] = query.value("total_seats").toInt();
+        flightMap["remain_seats"] = query.value("remain_seats").toInt();
+        flightMap["status"] = query.value("status").toString();
+
+        flightList.append(flightMap);
+    }
+
+    return flightList;
+}
+
+// 判断用户是否已收藏某航班
+bool DBManager::isFlightCollected(int userId, const QString& flightId)
+{
+    QMutexLocker locker(&m_mutex);
+
+    if (!m_db.isOpen()) {
+        emit operateResult(false, "判断失败：数据库未连接！");
+        return false;
+    }
+
+    if (userId <= 0 || flightId.isEmpty()) {
+        return false;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare(R"(
+        SELECT 1 FROM user_collect_flights
+        WHERE user_id = :user_id AND flight_id = :flight_id
+        LIMIT 1
+    )");
+    query.bindValue(":user_id", userId);
+    query.bindValue(":flight_id", flightId);
+
+    if (query.exec() && query.next()) {
+        return true; // 已收藏
+    }
+    return false; // 未收藏
 }
 
 // 打印航班（id）

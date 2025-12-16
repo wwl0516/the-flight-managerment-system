@@ -42,7 +42,7 @@ public:
 
     Q_INVOKABLE QVariantList queryAllFlights();                // 查询所有航班
     Q_INVOKABLE QVariantList queryFlightsByCondition(const QString& departure, const QString& destination, const QString& departDate);  // 按地点，日期查询
-    Q_INVOKABLE QVariantMap queryFlightByNum(const QString& Flight_id);  // 按航班号查询
+    Q_INVOKABLE QVariantList queryFlightByNum(const QString& Flight_id);  // 按航班号查询
     Q_INVOKABLE bool addFlight(
         const QString& Flight_id,
         const QString& Departure,
@@ -57,6 +57,11 @@ public:
     Q_INVOKABLE bool updateFlightSeats(const QString& Flight_id, int newRemainSeats);  // 更新剩余座位
     Q_INVOKABLE bool updateFlightStatus(const QString& Flight_id, const QString& newststus);  // 更新航班状态
     Q_INVOKABLE bool deleteFlight(const QString& Flight_id);    // 删除航班
+
+    Q_INVOKABLE bool collectFlight(int userId, const QString& flightId, const QString& createTime);  // 收藏航班
+    Q_INVOKABLE bool cancelCollectFlight(int userId, const QString& flightId);  // 取消收藏航班
+    Q_INVOKABLE QVariantList queryCollectedFlights(int userId);  // 查询用户收藏的所有航班
+    Q_INVOKABLE bool isFlightCollected(int userId, const QString& flightId);  // 判断用户是否已收藏某航班
 
     Q_INVOKABLE void printFlight(const QVariantMap &flight);  // 打印航班
     Q_INVOKABLE void printFlightList(const QVariantList &flightList);  // 打印所有航班

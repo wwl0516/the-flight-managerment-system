@@ -1111,3 +1111,310 @@ int DBManager::getCurrentAdminId() const
 {
     return m_currentAdminId;
 }
+// 查看我的所有订单
+QVariantList DBManager::queryMyOrders(int userId)
+{
+    QMutexLocker locker(&m_mutex);
+    QVariantList result;
+
+    if (!m_db.isOpen()) {
+        emit queryMyOrdersFailed("查询失败：数据库未连接！");
+        emit operateResult(false, "查询失败：数据库未连接！");
+        return result;
+    }
+
+    if (userId <= 0) {
+        emit queryMyOrdersFailed("查询失败：用户ID无效！");
+        emit operateResult(false, "查询失败：用户ID无效！");
+        return result;
+    }
+
+    QSqlQuery query(m_db);
+    QString sql = R"(
+        SELECT
+            o.order_id,
+            o.flight_id,
+            o.passenger_name,
+            o.passenger_idcard,
+            o.order_time,
+            o.status,
+            f.Departure,
+            f.Destination,
+            f.depart_time,
+            f.arrive_time,
+            f.price,
+            f.remain_seats
+        FROM `order` o
+        INNER JOIN flight f ON o.flight_id = f.Flight_id
+        WHERE o.user_id = :userId
+        ORDER BY o.order_time DESC
+    )";
+
+    if (!query.prepare(sql)) {
+        QString errMsg = "[DB] 查询订单预处理失败：" + query.lastError().text();
+        qCritical() << errMsg;
+        emit queryMyOrdersFailed("查询失败：数据库操作错误！");
+        emit operateResult(false, errMsg);
+        return result;
+    }
+
+    query.bindValue(":userId", userId);
+
+    if (query.exec()) {
+        while (query.next()) {
+            QVariantMap order;
+            order["order_id"] = query.value("order_id").toInt();
+            order["flight_id"] = query.value("flight_id").toString();
+            order["passenger_name"] = query.value("passenger_name").toString();
+            order["passenger_idcard"] = query.value("passenger_idcard").toString();
+            order["order_time"] = query.value("order_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["status"] = query.value("status").toString();
+            order["departure"] = query.value("Departure").toString();
+            order["destination"] = query.value("Destination").toString();
+            order["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["price"] = query.value("price").toDouble();
+            order["remain_seats"] = query.value("remain_seats").toInt();
+
+            result.append(order);
+        }
+        emit queryMyOrdersSuccess(result);
+        emit operateResult(true, QString("查询成功，共 %1 个订单").arg(result.size()));
+    } else {
+        QString errMsg = "[DB] 查询订单失败：" + query.lastError().text();
+        qCritical() << errMsg;
+        emit queryMyOrdersFailed("查询失败：" + query.lastError().text());
+        emit operateResult(false, errMsg);
+    }
+
+    return result;
+}
+
+// 按条件查询我的订单
+QVariantList DBManager::queryMyOrdersByCondition(int userId,
+                                                 const QString& flightId,
+                                                 const QString& passengerName,
+                                                 const QString& status,
+                                                 const QString& startDate,
+                                                 const QString& endDate)
+{
+    QMutexLocker locker(&m_mutex);
+    QVariantList result;
+
+    if (!m_db.isOpen()) {
+        emit queryMyOrdersFailed("查询失败：数据库未连接！");
+        emit operateResult(false, "查询失败：数据库未连接！");
+        return result;
+    }
+
+    if (userId <= 0) {
+        emit queryMyOrdersFailed("查询失败：用户ID无效！");
+        emit operateResult(false, "查询失败：用户ID无效！");
+        return result;
+    }
+
+    QSqlQuery query(m_db);
+    QString sql = R"(
+        SELECT
+            o.order_id,
+            o.flight_id,
+            o.passenger_name,
+            o.passenger_idcard,
+            o.order_time,
+            o.status,
+            f.Departure,
+            f.Destination,
+            f.depart_time,
+            f.arrive_time,
+            f.price,
+            f.remain_seats
+        FROM `order` o
+        INNER JOIN flight f ON o.flight_id = f.Flight_id
+        WHERE o.user_id = :userId
+    )";
+
+    QList<QString> conditions;
+    QVariantMap params;
+    params[":userId"] = userId;
+
+    // 添加航班号条件
+    if (!flightId.isEmpty()) {
+        conditions.append("o.flight_id LIKE :flightId");
+        params[":flightId"] = "%" + flightId + "%";
+    }
+
+    // 添加乘客姓名条件
+    if (!passengerName.isEmpty()) {
+        conditions.append("o.passenger_name LIKE :passengerName");
+        params[":passengerName"] = "%" + passengerName + "%";
+    }
+
+    // 添加状态条件
+    if (!status.isEmpty() && status != "全部") {
+        conditions.append("o.status = :status");
+        params[":status"] = status;
+    }
+
+    // 添加时间范围条件
+    if (!startDate.isEmpty()) {
+        conditions.append("DATE(o.order_time) >= :startDate");
+        params[":startDate"] = startDate;
+    }
+    if (!endDate.isEmpty()) {
+        conditions.append("DATE(o.order_time) <= :endDate");
+        params[":endDate"] = endDate;
+    }
+
+    // 拼接条件
+    if (!conditions.isEmpty()) {
+        sql += " AND " + conditions.join(" AND ");
+    }
+
+    sql += " ORDER BY o.order_time DESC";
+
+    if (!query.prepare(sql)) {
+        QString errMsg = "[DB] 条件查询订单预处理失败：" + query.lastError().text();
+        qCritical() << errMsg;
+        emit queryMyOrdersFailed("查询失败：数据库操作错误！");
+        emit operateResult(false, errMsg);
+        return result;
+    }
+
+    // 绑定参数
+    for (auto it = params.constBegin(); it != params.constEnd(); ++it) {
+        query.bindValue(it.key(), it.value());
+    }
+
+    if (query.exec()) {
+        while (query.next()) {
+            QVariantMap order;
+            order["order_id"] = query.value("order_id").toInt();
+            order["flight_id"] = query.value("flight_id").toString();
+            order["passenger_name"] = query.value("passenger_name").toString();
+            order["passenger_idcard"] = query.value("passenger_idcard").toString();
+            order["order_time"] = query.value("order_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["status"] = query.value("status").toString();
+            order["departure"] = query.value("Departure").toString();
+            order["destination"] = query.value("Destination").toString();
+            order["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["price"] = query.value("price").toDouble();
+            order["remain_seats"] = query.value("remain_seats").toInt();
+
+            result.append(order);
+        }
+        emit queryMyOrdersSuccess(result);
+        emit operateResult(true, QString("条件查询成功，共 %1 个订单").arg(result.size()));
+    } else {
+        QString errMsg = "[DB] 条件查询订单失败：" + query.lastError().text();
+        qCritical() << errMsg;
+        emit queryMyOrdersFailed("查询失败：" + query.lastError().text());
+        emit operateResult(false, errMsg);
+    }
+
+    return result;
+}
+
+// 获取订单详情
+QVariantMap DBManager::queryOrderDetail(int userId, int orderId)
+{
+    QVariantMap result;
+    QMutexLocker locker(&m_mutex);
+
+    if (!m_db.isOpen()) {
+        emit orderDetailQueryFailed("查询失败：数据库未连接！");
+        emit operateResult(false, "查询失败：数据库未连接！");
+        return result;
+    }
+
+    if (userId <= 0 || orderId <= 0) {
+        emit orderDetailQueryFailed("查询失败：参数无效！");
+        emit operateResult(false, "查询失败：参数无效！");
+        return result;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare(R"(
+        SELECT
+            o.order_id,
+            o.flight_id,
+            o.passenger_name,
+            o.passenger_idcard,
+            o.order_time,
+            o.status,
+            f.Departure,
+            f.Destination,
+            f.depart_time,
+            f.arrive_time,
+            f.price,
+            f.total_seats,
+            f.remain_seats,
+            f.status as flight_status,
+            u.User_name,
+            u.Email
+        FROM `order` o
+        INNER JOIN flight f ON o.flight_id = f.Flight_id
+        INNER JOIN user_info u ON o.user_id = u.Uid
+        WHERE o.order_id = :orderId AND o.user_id = :userId
+    )");
+
+    query.bindValue(":orderId", orderId);
+    query.bindValue(":userId", userId);
+
+    if (query.exec() && query.next()) {
+        result["order_id"] = query.value("order_id").toInt();
+        result["flight_id"] = query.value("flight_id").toString();
+        result["passenger_name"] = query.value("passenger_name").toString();
+        result["passenger_idcard"] = query.value("passenger_idcard").toString();
+        result["order_time"] = query.value("order_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        result["status"] = query.value("status").toString();
+        result["departure"] = query.value("Departure").toString();
+        result["destination"] = query.value("Destination").toString();
+        result["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        result["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        result["price"] = query.value("price").toDouble();
+        result["total_seats"] = query.value("total_seats").toInt();
+        result["remain_seats"] = query.value("remain_seats").toInt();
+        result["flight_status"] = query.value("flight_status").toString();
+        result["user_name"] = query.value("User_name").toString();
+        result["email"] = query.value("Email").toString();
+
+        emit orderDetailQuerySuccess(result);
+        emit operateResult(true, "查询订单详情成功！");
+    } else {
+        emit orderDetailQueryFailed("查询失败：未找到该订单！");
+        emit operateResult(false, "查询失败：未找到该订单！");
+    }
+
+    return result;
+}
+
+
+// 检查订单是否存在
+bool DBManager::isOrderExists(int userId, int orderId)
+{
+    QMutexLocker locker(&m_mutex);
+
+    if (!m_db.isOpen()) {
+        return false;
+    }
+
+    if (userId <= 0 || orderId <= 0) {
+        return false;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare("SELECT 1 FROM `order` WHERE order_id = :orderId AND user_id = :userId");
+    query.bindValue(":orderId", orderId);
+    query.bindValue(":userId", userId);
+
+    return query.exec() && query.next();
+}
+
+// 获取订单状态列表
+QStringList DBManager::getOrderStatusList()
+{
+    QStringList statusList;
+    statusList << "全部" << "已支付" << "已取消" << "已完成" << "已退款";
+    return statusList;
+}

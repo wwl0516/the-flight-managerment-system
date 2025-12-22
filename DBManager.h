@@ -76,7 +76,21 @@ public:
     Q_INVOKABLE QString getCurrentUserEmail() const;  // 获取当前登录用户的邮箱
 
     Q_INVOKABLE int forgetPassword(const QString& email, const QString& verifyCode, const QString& newPassword);  // 忘记密码（验证码默认为0000）
-
+    // 查看我的订单
+    QVariantList queryMyOrders(int userId);
+    // 按条件查询我的订单
+    QVariantList queryMyOrdersByCondition(int userId,
+                                          const QString& flightId = QString(),
+                                          const QString& passengerName = QString(),
+                                          const QString& status = QString(),
+                                          const QString& startDate = QString(),
+                                          const QString& endDate = QString());
+    // 获取订单详情
+    QVariantMap queryOrderDetail(int userId, int orderId);
+    // 检查订单是否存在
+    bool isOrderExists(int userId, int orderId);
+    // 获取订单状态列表
+    QStringList getOrderStatusList();
 signals:
     void connectionStateChanged(bool isConnected);  // 数据库连接信号
     void operateResult(bool success, const QString &msg);  // 操作结果
@@ -96,6 +110,16 @@ signals:
 
     void passwordResetSuccess(const QString& username);  // 密码重置成功
     void passwordResetFailed(const QString& errorMessage);  // 密码重置失败
+
+    // 在信号区域添加订单相关信号
+    void queryMyOrdersSuccess(const QVariantList& orders);
+    void queryMyOrdersFailed(const QString& errorMsg);
+    void orderCanceledSuccess(int orderId);
+    void orderCanceledFailed(const QString& errorMsg);
+    void orderCreatedSuccess(int orderId);
+    void orderCreatedFailed(const QString& errorMsg);
+    void orderDetailQuerySuccess(const QVariantMap& orderDetail);
+    void orderDetailQueryFailed(const QString& errorMsg);
 
 private:
     explicit DBManager(QObject *parent = nullptr);

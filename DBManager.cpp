@@ -474,15 +474,15 @@ QVariantList DBManager::queryAllFlights()
     if (query.exec()) {
         while (query.next()) {
             QVariantMap flight;
-            flight["flightId"] = query.value("Flight_id").toString();
-            flight["departure"] = query.value("Departure").toString();
-            flight["destination"] = query.value("Destination").toString();
-            flight["departTime"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-            flight["arriveTime"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            flight["Flight_id"] = query.value("Flight_id").toString();
+            flight["Departure"] = query.value("Departure").toString();
+            flight["Destination"] = query.value("Destination").toString();
+            flight["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            flight["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
             flight["status"] = query.value("status").toString();
             flight["price"] = query.value("price").toDouble();
-            flight["totalSeats"] = query.value("total_seats").toInt();
-            flight["remainSeats"] = query.value("remain_seats").toInt();
+            flight["total_seats"] = query.value("total_seats").toInt();
+            flight["remain_seats"] = query.value("remain_seats").toInt();
             result.append(flight);
         }
         emit operateResult(true, QString("查询成功，共 %1 条航班数据").arg(result.size()));
@@ -592,15 +592,15 @@ QVariantList DBManager::queryFlightByNum(const QString& flightId)
     query.bindValue(":flightId", flightId);
     if (query.exec() && query.next()) {
         QVariantMap flightMap;
-        flightMap["flightId"] = query.value("Flight_id").toString();
-        flightMap["departure"] = query.value("Departure").toString();
-        flightMap["destination"] = query.value("Destination").toString();
-        flightMap["departTime"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-        flightMap["arriveTime"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        flightMap["Flight_id"] = query.value("Flight_id").toString();
+        flightMap["Departure"] = query.value("Departure").toString();
+        flightMap["Destination"] = query.value("Destination").toString();
+        flightMap["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        flightMap["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
         flightMap["status"] = query.value("status").toString();
         flightMap["price"] = query.value("price").toDouble();
-        flightMap["totalSeats"] = query.value("total_seats").toInt();
-        flightMap["remainSeats"] = query.value("remain_seats").toInt();
+        flightMap["total_seats"] = query.value("total_seats").toInt();
+        flightMap["remain_seats"] = query.value("remain_seats").toInt();
         emit operateResult(true, "查询成功！");
 
         result.append(flightMap);

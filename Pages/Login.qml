@@ -299,47 +299,47 @@ Window {
             }
 
             // 记住密码选项（仅在用户登录时显示）
-            Row {
-                id: rememberPasswordRow
-                width: parent.width
-                spacing: 100
-                visible: dynamicBackground.state === loginState
-                leftPadding: 2
+            // Row {
+            //     id: rememberPasswordRow
+            //     width: parent.width
+            //     spacing: 100
+            //     visible: dynamicBackground.state === loginState
+            //     leftPadding: 2
 
-                CheckBox {
-                    id: rememberPasswordCheck
-                    //自动登录选中时自动选中
-                    checked: autoLoginCheck.checked
-                    indicator.width: 16
-                    indicator.height: 16
+            //     CheckBox {
+            //         id: rememberPasswordCheck
+            //         //自动登录选中时自动选中
+            //         checked: autoLoginCheck.checked
+            //         indicator.width: 16
+            //         indicator.height: 16
 
-                    contentItem: Text {
-                        text: qsTr("记住密码")
-                        font.pointSize: 9
-                        color: "#666666"
-                        verticalAlignment: Text.AlignVCenter
-                        leftPadding: rememberPasswordCheck.indicator.width + rememberPasswordCheck.spacing
-                    }
-                }
+            //         contentItem: Text {
+            //             text: qsTr("记住密码")
+            //             font.pointSize: 9
+            //             color: "#666666"
+            //             verticalAlignment: Text.AlignVCenter
+            //             leftPadding: rememberPasswordCheck.indicator.width + rememberPasswordCheck.spacing
+            //         }
+            //     }
 
-                //自动登录选项（仅在用户登录显示）
-                CheckBox {
-                    id: autoLoginCheck
-                    checked: false
-                    indicator.width: 16
-                    indicator.height: 16
+            //     //自动登录选项（仅在用户登录显示）
+            //     CheckBox {
+            //         id: autoLoginCheck
+            //         checked: false
+            //         indicator.width: 16
+            //         indicator.height: 16
 
 
 
-                    contentItem: Text {
-                        text: qsTr("自动登录")
-                        font.pointSize: 9
-                        color: "#666666"
-                        verticalAlignment: Text.AlignVCenter
-                        leftPadding: autoLoginCheck.indicator.width + autoLoginCheck.spacing
-                    }
-                }
-            }
+            //         contentItem: Text {
+            //             text: qsTr("自动登录")
+            //             font.pointSize: 9
+            //             color: "#666666"
+            //             verticalAlignment: Text.AlignVCenter
+            //             leftPadding: autoLoginCheck.indicator.width + autoLoginCheck.spacing
+            //         }
+            //     }
+            // }
 
 
 

@@ -107,17 +107,23 @@ ColumnLayout{
     function searchFlight(){
         //优先处理航班号
         if(search_my_flight_input.text!==""){
-            let flight =DBManager.queryFlightByNum(search_my_flight_input.text)
+            let flight =DBManager.queryFlightByNum(search_data.flight_id)
+            for(let i=0;i<flight.length;i++)
+            {
+                console.log(flight[i]["flightId"]);
+            }
+
             return ;
         }
 
-        var departureText=departure.displayText==="起始地"?"":departure.displayText
-        var destinationText=destination.displayText==="目的地"?"":destination.displayText
+        // var departureText=departure.displayText==="起始地"?"":departure.displayText
+        // var destinationText=destination.displayText==="目的地"?"":destination.displayText
 
-        //console.log(departureText)
-        //console.log(destinationText)
-        //console.log(pick.text)
-        let flightList=DBManager.queryFlightsByCondition(departureText,destinationText,pick.text)
+        console.log("here")
+        console.log(search_data.departure)
+        console.log(search_data.destination)
+        console.log(search_data.depart_time)
+        let flightList=DBManager.queryFlightsByCondition(search_data.departure,search_data.destination,search_data.depart_time)
 
 
     }

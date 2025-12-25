@@ -3,6 +3,7 @@ import HuskarUI.Basic
 import QtQuick.Layouts
 
 ColumnLayout{
+
     Layout.fillHeight: true
     Layout.fillWidth: true
     Loader{

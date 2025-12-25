@@ -6,6 +6,14 @@ ColumnLayout{
     Layout.fillWidth: true
     Layout.fillHeight: true
     spacing: 10
+
+    property var search_data: {
+        "flight_id":"",
+        "departure":"",
+        "destination":"",
+        "depart_time":""
+    }
+
     ColumnLayout {
         Layout.fillWidth: true
         spacing: 30
@@ -25,6 +33,8 @@ ColumnLayout{
                 Layout.maximumWidth: 300
                 Layout.fillHeight: true
                 radiusBg.all: 5
+                placeholderText: "输入航班号"
+                onTextChanged: search_data.flight_id=text
             }
 
             HusIconButton {
@@ -35,6 +45,7 @@ ColumnLayout{
                 radiusBg.all: 5
                 iconSource: HusIcon.SearchOutlined
                 text: qsTr("搜索")
+                onClicked: search()
             }
         }
 
@@ -55,6 +66,7 @@ ColumnLayout{
                     {value:"北京",label:qsTr("北京")},
                     {value:"上海",label:qsTr("上海")}
                 ]
+                onActivated: search_data.departure=currentValue
             }
             HusSelect{
                 Layout.preferredWidth: 180
@@ -66,14 +78,17 @@ ColumnLayout{
                     {value:"北京",label:qsTr("北京")},
                     {value:"上海",label:qsTr("上海")}
                 ]
+                onActivated: search_data.destination=currentValue
             }
             HusDateTimePicker{
                 Layout.preferredWidth: 280
                 Layout.maximumWidth: 280
                 Layout.fillHeight: true
-
+                datePickerMode: HusDateTimePicker.Mode_Day
+                showTime: false
                 placeholderText: qsTr("请选择始发时间")
-                format: qsTr("yyyy-MM-dd hh:mm")
+                format: qsTr("yyyy-MM-dd")
+                onTextChanged: search_data.depart_time=text
             }
         }
     }
@@ -91,6 +106,11 @@ ColumnLayout{
     Item{
         Layout.fillHeight: true
         Layout.fillWidth: true
+    }
+
+    function search()
+    {
+
     }
 
 }

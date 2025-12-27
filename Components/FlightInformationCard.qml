@@ -114,6 +114,12 @@ HusRectangle{
                 color: "#FF999999"
                 Layout.alignment: Qt.AlignVCenter
                 radius: 10
+                HusText{
+                    anchors.centerIn: parent
+                    text: qsTr(String(card_data.remain_seats))
+                    font.pixelSize: 17
+                    font.bold: true
+                }
             }
             //状态
             HusRectangle{

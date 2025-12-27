@@ -480,7 +480,7 @@ QVariantList DBManager::queryAllFlights()
             flight["Destination"] = query.value("Destination").toString();
             flight["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
             flight["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-            flight["status"] = query.value("status").toString();
+            flight["status"] = query.value("status").toInt();
             flight["price"] = query.value("price").toDouble();
             flight["total_seats"] = query.value("total_seats").toInt();
             flight["remain_seats"] = query.value("remain_seats").toInt();
@@ -555,12 +555,12 @@ QVariantList DBManager::queryFlightsByCondition(const QString& departure, const 
         flightMap["Flight_id"] = query.value("Flight_id").toString();
         flightMap["Departure"] = query.value("Departure").toString();
         flightMap["Destination"] = query.value("Destination").toString();
-        flightMap["depart_time"] = query.value("depart_time").toString();
-        flightMap["arrive_time"] = query.value("arrive_time").toString();
+        flightMap["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        flightMap["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
         flightMap["price"] = query.value("price").toDouble();
         flightMap["total_seats"] = query.value("total_seats").toInt();
         flightMap["remain_seats"] = query.value("remain_seats").toInt();
-        flightMap["status"] = query.value("status").toString();
+        flightMap["status"] = query.value("status").toInt();
 
         result.append(flightMap);
     }
@@ -603,7 +603,7 @@ QVariantList DBManager::queryFlightByNum(const QString& flightId)
         flightMap["Destination"] = query.value("Destination").toString();
         flightMap["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
         flightMap["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-        flightMap["status"] = query.value("status").toString();
+        flightMap["status"] = query.value("status").toInt();
         flightMap["price"] = query.value("price").toDouble();
         flightMap["total_seats"] = query.value("total_seats").toInt();
         flightMap["remain_seats"] = query.value("remain_seats").toInt();
@@ -793,7 +793,7 @@ bool DBManager::updateFlightSeats(const QString& Flight_id, int newRemainSeats)
 }
 
 // 更新航班状态
-bool DBManager::updateFlightStatus(const QString& Flight_id, const QString& newststus)
+bool DBManager::updateFlightStatus(const QString& Flight_id, int newststus)
 {
     QMutexLocker locker(&m_mutex);
 
@@ -817,7 +817,7 @@ bool DBManager::updateFlightStatus(const QString& Flight_id, const QString& news
     bool success = query.exec();
 
     if (success && query.numRowsAffected() > 0) {
-        emit operateResult(true, "航班 " + Flight_id + " 状态更新为 " + newststus + "！ ");
+        emit operateResult(true, "航班 " + Flight_id + " 状态更新为 " + QString::number(newststus) + "！ ");
     } else if (success && query.numRowsAffected() == 0) {
         emit operateResult(false, "更新失败：未找到航班 " + Flight_id + "！");
         success = false;
@@ -970,7 +970,7 @@ QVariantList DBManager::queryCollectedFlights(int userId)
         flightMap["price"] = query.value("price").toDouble();
         flightMap["total_seats"] = query.value("total_seats").toInt();
         flightMap["remain_seats"] = query.value("remain_seats").toInt();
-        flightMap["status"] = query.value("status").toString();
+        flightMap["status"] = query.value("status").toInt();
 
         flightList.append(flightMap);
     }
@@ -1018,7 +1018,7 @@ QVariantList DBManager::queryCollectedFlightByNum(int userId, const QString& Fli
         flightMap["price"] = query.value("price").toDouble();
         flightMap["total_seats"] = query.value("total_seats").toInt();
         flightMap["remain_seats"] = query.value("remain_seats").toInt();
-        flightMap["status"] = query.value("status").toString();
+        flightMap["status"] = query.value("status").toInt();
 
         flightList.append(flightMap);
     }
@@ -1089,7 +1089,7 @@ QVariantList DBManager::queryCollectedFlightsByCondition(int userId, const QStri
         flightMap["price"] = query.value("price").toDouble();
         flightMap["total_seats"] = query.value("total_seats").toInt();
         flightMap["remain_seats"] = query.value("remain_seats").toInt();
-        flightMap["status"] = query.value("status").toString();
+        flightMap["status"] = query.value("status").toInt();
 
         flightList.append(flightMap);
     }

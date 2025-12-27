@@ -113,19 +113,19 @@ ColumnLayout{
         model: flightList
 
         delegate: FlightInformationCard{
-            required property var model_data
+            required property var modelData
             width: parent.width
             height: 150
             card_data: {
-                "flight_id":model_data.Flight_id,
-                "departure":model_data.Departure,
-                "destination":model_data.Destination,
-                "depart_time":model_data.depart_time,
-                "arrive_time":model_data.arrive_time,
-                "price":model_data.price,
-                "total_seats":model_data.total_seats,
-                "remain_seats":model_data.remain_seats,
-                "status":model_data.status
+                "flight_id":modelData.Flight_id,
+                "departure":modelData.Departure,
+                "destination":modelData.Destination,
+                "depart_time":modelData.depart_time,
+                "arrive_time":modelData.arrive_time,
+                "price":modelData.price,
+                "total_seats":modelData.total_seats,
+                "remain_seats":modelData.remain_seats,
+                "status":modelData.status
             }
         }
     }
@@ -139,9 +139,11 @@ ColumnLayout{
         //优先处理航班号
         if(search_my_flight_input.text!==""){
             let flight =DBManager.queryFlightByNum(search_data.flight_id)
+            flightList.clear();
             for(let i=0;i<flight.length;i++)
             {
                 console.log(flight[i]["Flight_id"]);
+                flightList.append(flight[i]);
             }
 
             return ;

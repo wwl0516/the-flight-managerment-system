@@ -1780,6 +1780,35 @@ bool DBManager::publishPostWithPath(const QString &title,
     return publishPost(title, content, userId, imgBlob, imgFormat);
 }
 
+// 获取最新帖子的ID（无帖子返回-1）
+int DBManager::getLatestPostId()
+{
+    if (!isConnected()) {
+        qDebug() << "获取最新帖子ID失败：数据库未连接";
+        return -1;
+    }
+
+    QSqlQuery query(m_db);
+    query.prepare("SELECT MAX(id) AS latest_id FROM posts");
+
+    if (!query.exec()) {
+        qDebug() << "查询最新帖子ID失败：" << query.lastError().text();
+        return -1;
+    }
+
+    int latestId = -1;
+    if (query.next()) {
+        // 处理无数据的情况（MAX(id)返回NULL，toInt()会得到0，需修正）
+        QVariant idValue = query.value("latest_id");
+        if (idValue.isValid() && !idValue.isNull()) {
+            latestId = idValue.toInt();
+        }
+    }
+
+    qDebug() << "当前最新帖子ID：" << (latestId > 0 ? QString::number(latestId) : "无帖子");
+    return latestId;
+}
+
 // 查询帖子详情
 QVariantMap DBManager::queryPostDetail(int postId, int currentUserId)
 {

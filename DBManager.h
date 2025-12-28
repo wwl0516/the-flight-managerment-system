@@ -130,6 +130,7 @@ public:
                                          const QString &content,
                                          int userId,
                                          const QString &imgPath);           // 通过文件路径存储发布
+    Q_INVOKABLE int getLatestPostId();  // 获取最新帖子的ID（无帖子返回-1）
     Q_INVOKABLE QVariantMap queryPostDetail(int postId, int currentUserId); // 查询帖子详情
     Q_INVOKABLE bool likePost(int userId, int postId);                      // 点赞
     Q_INVOKABLE bool cancelLikePost(int userId, int postId);                // 取消点赞

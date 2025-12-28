@@ -76,6 +76,12 @@ public:
     Q_INVOKABLE int userLogin(const QString& username, const QString& password);  // 普通用户登录
     Q_INVOKABLE void userLogout();  // 普通用户登出
 
+    Q_INVOKABLE bool uploadUserAvatar(int userId, const QString& imgPath, int quality = 80);  // 上传/更新用户头像（传图片路径，自动解析+转二进制存入数据库，推荐）
+    Q_INVOKABLE bool uploadUserAvatarByBlob(int userId, const QByteArray& imgBlob, const QString& imgFormat);  // 上传/更新用户头像（传二进制+格式，备用）
+    Q_INVOKABLE QByteArray getUserAvatarBlob(int userId);  // 获取用户头像的二进制数据
+    Q_INVOKABLE QString getUserAvatarFormat(int userId);  // 获取用户头像的格式
+    Q_INVOKABLE bool removeUserAvatar(int userId);  // 移除用户头像（清空数据库的头像字段）
+
     Q_INVOKABLE bool isUserLoggedIn() const;  // 检查普通用户登录状态
     Q_INVOKABLE int getCurrentUserId() const;  // 获取当前登录用户的ID
     Q_INVOKABLE QString getCurrentUserName() const;  // 获取当前登录用户的用户名

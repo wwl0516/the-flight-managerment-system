@@ -58,7 +58,7 @@ HusWindow{
                     //名字
                     HusCopyableText{
                         textFormat: Text.RichText
-                        text: qsTr("<b>名字</b>") //此处需要适配数据库
+                        text: qsTr(DBManager.getCurrentAdminName()) //此处需要适配数据库
                     }
                 }
             }
@@ -79,12 +79,17 @@ HusWindow{
                     }
                     initModel: [
                     {
-                        key:"discover",
+                        key:"flightManager",
                         label:qsTr("修改航班信息"),
                         iconSource:HusIcon.GlobalOutlined
                     },
                     {
-                        key:"my_favourite_flight",
+                        key:"orderManager",
+                        label:qsTr("修改订单信息"),
+                        iconSource:HusIcon.StarOutlined
+                    },
+                    {
+                        key:"shareManager",
                         label:qsTr("修改分享信息"),
                         iconSource:HusIcon.StarOutlined
                     },

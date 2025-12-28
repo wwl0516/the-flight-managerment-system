@@ -171,10 +171,15 @@ HusRectangle{
                 type: HusButton.Type_Primary
                 Layout.preferredWidth: 100
                 onHoveredChanged: text = hovered ? qsTr("购买") : qsTr(card_data.price+"元")
+<<<<<<< HEAD
 
                 TapHandler{
                     target: parent
                     onTapped: DBManager.createOrder(DBManager.getCurrentUserId(),card_data.flight_id,1)
+=======
+                onClicked{
+
+>>>>>>> 3ed50c0cce64ccc5fdb9bcedc529065eaf277963
                 }
             }
         }

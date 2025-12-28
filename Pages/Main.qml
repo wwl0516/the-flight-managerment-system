@@ -53,6 +53,13 @@ HusWindow{
                         id:hoverHandler
                         target: parent
                     }
+                    TapHandler{
+                        target:parent
+                        onTapped: {
+                            right_page.source="UserData.qml"
+                            console.log("haji")
+                        }
+                    }
                 }
                 RowLayout{
                     anchors.left: parent.left
@@ -62,7 +69,7 @@ HusWindow{
                     //头像
                     HusAvatar{
                         size: 80
-                        imageSource: ''
+                        imageSource: DBManager.blobToImage(DBManager.getUserAvatarBlob(DBManager.getCurrentUserId()),DBManager.getUserAvatarFormat(DBManager.getCurrentUserId()))
                         imageMipmap: true
                     }
                     //名字

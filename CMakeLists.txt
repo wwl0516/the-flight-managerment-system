@@ -52,7 +52,11 @@ qt_add_qml_module(appthe_flight_managerment_system
     QML_FILES Pages/RootContainer.qml
     QML_FILES Pages/TravelShare.qml
     QML_FILES Pages/MyFlight.qml
+<<<<<<< HEAD
     QML_FILES Components/MyFavouriteFlight.qml
+=======
+    QML_FILES Pages/UserData.qml
+>>>>>>> 3ed50c0cce64ccc5fdb9bcedc529065eaf277963
 
 
 )

@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import HuskarUI.Basic
 import com.flight.globalVars
+import com.flight.db 1.0
 
 
 HusRectangle{
@@ -139,9 +140,27 @@ HusRectangle{
             HusIconText{
                 Layout.fillHeight: true
                 Layout.preferredWidth: 30
-                iconSource: HusIcon.HeartOutlined
+                iconSource: hoverHandler.hovered? HusIcon.HeartFilled:HusIcon.HeartOutlined
                 iconSize: parent.height
                 colorIcon: "red"
+
+                HoverHandler{
+                    id:hoverHandler
+                    target: parent
+                    hovered: {
+
+                    }
+                }
+
+                TapHandler{
+                    id:tapHandler
+                    target: parent
+                    onTapped: {
+                        DBManager.collectFlight(DBManager.getCurrentUserId(),card_data.flight_id)
+                    }
+                }
+
+
             }
 
             //空白占位符

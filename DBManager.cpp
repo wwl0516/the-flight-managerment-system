@@ -1,15 +1,16 @@
 #include "DBManager.h"
 #include <QCryptographicHash>
 #include <QRegularExpression>
-#include <QSqlQuery>
 #include <QSqlError>
+#include <QSqlQuery>
 #include <QUrl>
 
 // 初始化静态成员
-DBManager* DBManager::m_instance = nullptr;
+DBManager *DBManager::m_instance = nullptr;
 QMutex DBManager::m_mutex;
 
-DBManager::DBManager(QObject *parent) : QObject(parent)
+DBManager::DBManager(QObject *parent)
+    : QObject(parent)
     , m_isAdminLoggedIn(false)
     , m_currentAdminId(-1)
     // 新增：用户相关成员变量初始化
@@ -21,7 +22,8 @@ DBManager::DBManager(QObject *parent) : QObject(parent)
     if (QSqlDatabase::contains("QT_ODBC_CONN")) {
         m_db = QSqlDatabase::database("QT_ODBC_CONN");
     } else {
-        m_db = QSqlDatabase::addDatabase("QODBC", "QT_ODBC_CONN");  // 自定义连接名，避免与其他连接冲突
+        m_db = QSqlDatabase::addDatabase("QODBC",
+                                         "QT_ODBC_CONN"); // 自定义连接名，避免与其他连接冲突
     }
 }
 
@@ -31,10 +33,10 @@ DBManager::~DBManager()
 }
 
 // 全局获取单例（线程安全）
-DBManager* DBManager::getInstance(QObject *parent)
+DBManager *DBManager::getInstance(QObject *parent)
 {
     if (m_instance == nullptr) {
-        QMutexLocker locker(&m_mutex);  // 加锁，避免多线程同时创建
+        QMutexLocker locker(&m_mutex); // 加锁，避免多线程同时创建
         if (m_instance == nullptr) {
             m_instance = new DBManager(parent);
         }
@@ -45,16 +47,16 @@ DBManager* DBManager::getInstance(QObject *parent)
 // 初始化 ODBC 连接参数
 void DBManager::initDBConfig()
 {
-    m_dsn = "QtODBC_MySQL";     // ODBC DSN 名称
-    m_user = "GYT";            // 数据库用户名
-    m_password = "123456";      // 数据库密码
-    m_databaseName = "flight_manage_system_db";  // 你要操作的数据库名
+    m_dsn = "QtODBC_MySQL";                     // ODBC DSN 名称
+    m_user = "GYT";                             // 数据库用户名
+    m_password = "123456";                      // 数据库密码
+    m_databaseName = "flight_manage_system_db"; // 你要操作的数据库名
 }
 
 // 连接数据库
 bool DBManager::connectDB()
 {
-    QMutexLocker locker(&m_mutex);  // 线程安全
+    QMutexLocker locker(&m_mutex); // 线程安全
 
     if (m_db.isOpen()) {
         emit connectionStateChanged(true);
@@ -115,7 +117,7 @@ bool DBManager::isValidDateTimeFormat(const QString &dateStr)
 }
 
 // 邮箱格式验证
-bool DBManager::isValidEmailFormat(const QString& email)
+bool DBManager::isValidEmailFormat(const QString &email)
 {
     // 标准邮箱正则表达式
     QRegularExpression emailRegex(R"(^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$)");
@@ -124,7 +126,7 @@ bool DBManager::isValidEmailFormat(const QString& email)
 }
 
 // 密码强度验证
-bool DBManager::isValidPasswordStrength(const QString& password)
+bool DBManager::isValidPasswordStrength(const QString &password)
 {
     // 至少8位，包含字母和数字（可根据需求调整）
     if (password.length() < 8) {
@@ -146,7 +148,7 @@ bool DBManager::isValidPasswordStrength(const QString& password)
 }
 
 // 用户名唯一性检查
-bool DBManager::isUsernameExists(const QString& User_name)
+bool DBManager::isUsernameExists(const QString &User_name)
 {
     if (!m_db.isOpen()) {
         qCritical() << "[DB] 检查用户名失败：数据库未连接！";
@@ -166,7 +168,7 @@ bool DBManager::isUsernameExists(const QString& User_name)
 }
 
 // 邮箱唯一性检查
-bool DBManager::isEmailExists(const QString& Email)
+bool DBManager::isEmailExists(const QString &Email)
 {
     if (!m_db.isOpen()) {
         qCritical() << "[DB] 检查邮箱失败：数据库未连接！";
@@ -186,7 +188,7 @@ bool DBManager::isEmailExists(const QString& Email)
 }
 
 // 密码加密（SHA256）
-QString DBManager::encryptPassword(const QString& password)
+QString DBManager::encryptPassword(const QString &password)
 {
     QByteArray byteArray = password.toUtf8();
     // SHA256 加密
@@ -196,7 +198,7 @@ QString DBManager::encryptPassword(const QString& password)
 }
 
 // 用户注册
-int DBManager::userRegister(const QString& Email, const QString& User_name, const QString& Password)
+int DBManager::userRegister(const QString &Email, const QString &User_name, const QString &Password)
 {
     QMutexLocker locker(&m_mutex); // 线程安全
 
@@ -278,7 +280,7 @@ int DBManager::userRegister(const QString& Email, const QString& User_name, cons
 }
 
 // 用户登录
-int DBManager::userLogin(const QString& User_name, const QString& Password)
+int DBManager::userLogin(const QString &User_name, const QString &Password)
 {
     QMutexLocker locker(&m_mutex); // 线程安全
 
@@ -354,9 +356,9 @@ void DBManager::userLogout()
 }
 
 // 【核心】上传头像：传入用户ID+图片路径，自动处理所有逻辑（推荐调用这个）
-bool DBManager::uploadUserAvatar(int userId, const QString& imgPath, int quality)
+bool DBManager::uploadUserAvatar(int userId, const QString &imgPath, int quality)
 {
-    if (!isConnected() || userId <=0 || imgPath.isEmpty()) {
+    if (!isConnected() || userId <= 0 || imgPath.isEmpty()) {
         emit operateResult(false, "参数错误/数据库未连接");
         return false;
     }
@@ -368,26 +370,30 @@ bool DBManager::uploadUserAvatar(int userId, const QString& imgPath, int quality
     }
     // 获取图片格式
     QString imgFormat = imgPath.split(".").last().toLower();
-    if(imgFormat == "jpeg") imgFormat = "jpg";
+    if (imgFormat == "jpeg")
+        imgFormat = "jpg";
     // 调用二进制上传函数
     return uploadUserAvatarByBlob(userId, imgBlob, imgFormat);
 }
 
 // 上传头像：二进制+格式 版本（内部调用/备用）
-bool DBManager::uploadUserAvatarByBlob(int userId, const QByteArray& imgBlob, const QString& imgFormat)
+bool DBManager::uploadUserAvatarByBlob(int userId,
+                                       const QByteArray &imgBlob,
+                                       const QString &imgFormat)
 {
-    if (!isConnected() || userId <=0 || imgBlob.isEmpty() || imgFormat.isEmpty()) {
+    if (!isConnected() || userId <= 0 || imgBlob.isEmpty() || imgFormat.isEmpty()) {
         emit operateResult(false, "参数错误");
         return false;
     }
     QSqlQuery query(m_db);
-    query.prepare("UPDATE user_info SET avatar_blob = :avatar_blob, avatar_format = :avatar_format WHERE Uid = :user_id");
+    query.prepare("UPDATE user_info SET avatar_blob = :avatar_blob, avatar_format = :avatar_format "
+                  "WHERE Uid = :user_id");
     query.bindValue(":avatar_blob", imgBlob);
     query.bindValue(":avatar_format", imgFormat);
     query.bindValue(":user_id", userId);
 
-    if(!query.exec() || query.numRowsAffected() == 0){
-        qDebug()<<"更新头像失败："<<query.lastError().text();
+    if (!query.exec() || query.numRowsAffected() == 0) {
+        qDebug() << "更新头像失败：" << query.lastError().text();
         emit operateResult(false, "头像上传失败");
         return false;
     }
@@ -398,11 +404,12 @@ bool DBManager::uploadUserAvatarByBlob(int userId, const QByteArray& imgBlob, co
 // 获取用户头像二进制
 QByteArray DBManager::getUserAvatarBlob(int userId)
 {
-    if(!isConnected() || userId <=0) return QByteArray();
+    if (!isConnected() || userId <= 0)
+        return QByteArray();
     QSqlQuery query(m_db);
     query.prepare("SELECT avatar_blob FROM user_info WHERE Uid = :user_id");
     query.bindValue(":user_id", userId);
-    if(query.exec() && query.next()){
+    if (query.exec() && query.next()) {
         return query.value("avatar_blob").toByteArray();
     }
     return QByteArray();
@@ -411,11 +418,12 @@ QByteArray DBManager::getUserAvatarBlob(int userId)
 // 获取用户头像格式
 QString DBManager::getUserAvatarFormat(int userId)
 {
-    if(!isConnected() || userId <=0) return "";
+    if (!isConnected() || userId <= 0)
+        return "";
     QSqlQuery query(m_db);
     query.prepare("SELECT avatar_format FROM user_info WHERE Uid = :user_id");
     query.bindValue(":user_id", userId);
-    if(query.exec() && query.next()){
+    if (query.exec() && query.next()) {
         return query.value("avatar_format").toString();
     }
     return "";
@@ -424,11 +432,13 @@ QString DBManager::getUserAvatarFormat(int userId)
 // 移除头像：清空数据库的头像字段
 bool DBManager::removeUserAvatar(int userId)
 {
-    if(!isConnected() || userId <=0) return false;
+    if (!isConnected() || userId <= 0)
+        return false;
     QSqlQuery query(m_db);
-    query.prepare("UPDATE user_info SET avatar_blob = NULL, avatar_format = NULL WHERE Uid = :user_id");
+    query.prepare(
+        "UPDATE user_info SET avatar_blob = NULL, avatar_format = NULL WHERE Uid = :user_id");
     query.bindValue(":user_id", userId);
-    if(!query.exec()){
+    if (!query.exec()) {
         emit operateResult(false, "移除头像失败");
         return false;
     }
@@ -437,7 +447,9 @@ bool DBManager::removeUserAvatar(int userId)
 }
 
 // 忘记密码
-int DBManager::forgetPassword(const QString& Email, const QString& verifyCode, const QString& newPassword)
+int DBManager::forgetPassword(const QString &Email,
+                              const QString &verifyCode,
+                              const QString &newPassword)
 {
     QMutexLocker locker(&m_mutex); // 线程安全
 
@@ -561,8 +573,10 @@ QVariantList DBManager::queryAllFlights()
             flight["Flight_id"] = query.value("Flight_id").toString();
             flight["Departure"] = query.value("Departure").toString();
             flight["Destination"] = query.value("Destination").toString();
-            flight["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-            flight["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            flight["depart_time"]
+                = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            flight["arrive_time"]
+                = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
             flight["status"] = query.value("status").toInt();
             flight["price"] = query.value("price").toDouble();
             flight["total_seats"] = query.value("total_seats").toInt();
@@ -578,7 +592,9 @@ QVariantList DBManager::queryAllFlights()
     return result;
 }
 
-QVariantList DBManager::queryFlightsByCondition(const QString& departure, const QString& destination, const QString& departDate)
+QVariantList DBManager::queryFlightsByCondition(const QString &departure,
+                                                const QString &destination,
+                                                const QString &departDate)
 {
     QMutexLocker locker(&m_mutex);
     QVariantList result;
@@ -638,8 +654,10 @@ QVariantList DBManager::queryFlightsByCondition(const QString& departure, const 
         flightMap["Flight_id"] = query.value("Flight_id").toString();
         flightMap["Departure"] = query.value("Departure").toString();
         flightMap["Destination"] = query.value("Destination").toString();
-        flightMap["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-        flightMap["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        flightMap["depart_time"]
+            = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        flightMap["arrive_time"]
+            = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
         flightMap["price"] = query.value("price").toDouble();
         flightMap["total_seats"] = query.value("total_seats").toInt();
         flightMap["remain_seats"] = query.value("remain_seats").toInt();
@@ -652,7 +670,7 @@ QVariantList DBManager::queryFlightsByCondition(const QString& departure, const 
 }
 
 // 按航班号查询航班
-QVariantList DBManager::queryFlightByNum(const QString& flightId)
+QVariantList DBManager::queryFlightByNum(const QString &flightId)
 {
     QMutexLocker locker(&m_mutex);
     QVariantList result;
@@ -684,8 +702,10 @@ QVariantList DBManager::queryFlightByNum(const QString& flightId)
         flightMap["Flight_id"] = query.value("Flight_id").toString();
         flightMap["Departure"] = query.value("Departure").toString();
         flightMap["Destination"] = query.value("Destination").toString();
-        flightMap["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-        flightMap["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        flightMap["depart_time"]
+            = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        flightMap["arrive_time"]
+            = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
         flightMap["status"] = query.value("status").toInt();
         flightMap["price"] = query.value("price").toDouble();
         flightMap["total_seats"] = query.value("total_seats").toInt();
@@ -700,16 +720,15 @@ QVariantList DBManager::queryFlightByNum(const QString& flightId)
 }
 
 // 添加航班
-bool DBManager::addFlight(
-    const QString& flightId,
-    const QString& departure,
-    const QString& destination,
-    const QString& departTime,
-    const QString& arriveTime,
-    double price,
-    int totalSeats,
-    int remainSeats
-    ) {
+bool DBManager::addFlight(const QString &flightId,
+                          const QString &departure,
+                          const QString &destination,
+                          const QString &departTime,
+                          const QString &arriveTime,
+                          double price,
+                          int totalSeats,
+                          int remainSeats)
+{
     QMutexLocker locker(&m_mutex);
 
     if (!m_db.isOpen()) {
@@ -724,7 +743,8 @@ bool DBManager::addFlight(
         emit operateResult(false, "添加失败：时间格式错误！请输入 YYYY-MM-DD HH:MM:SS");
         return false;
     }
-    if (QDateTime::fromString(departTime, "yyyy-MM-dd HH:mm:ss") >= QDateTime::fromString(arriveTime, "yyyy-MM-dd HH:mm:ss")) {
+    if (QDateTime::fromString(departTime, "yyyy-MM-dd HH:mm:ss")
+        >= QDateTime::fromString(arriveTime, "yyyy-MM-dd HH:mm:ss")) {
         emit operateResult(false, "添加失败：起飞时间不能晚于降落时间！");
         return false;
     }
@@ -769,9 +789,9 @@ bool DBManager::addFlight(
     query.bindValue(":flightId", flightId);
     query.bindValue(":departure", departure);
     query.bindValue(":destination", destination);
-    query.bindValue(":departTime", departTime);  // 直接传字符串，SQL 自动解析为 datetime
+    query.bindValue(":departTime", departTime); // 直接传字符串，SQL 自动解析为 datetime
     query.bindValue(":arriveTime", arriveTime);
-    query.bindValue(":price", price);            // double 适配 decimal(10,2)
+    query.bindValue(":price", price); // double 适配 decimal(10,2)
     query.bindValue(":totalSeats", totalSeats);
     query.bindValue(":remainSeats", remainSeats);
 
@@ -787,7 +807,7 @@ bool DBManager::addFlight(
 }
 
 // 更新航班价格
-bool DBManager::updateFlightPrice(const QString& Flight_id, double newPrice)
+bool DBManager::updateFlightPrice(const QString &Flight_id, double newPrice)
 {
     QMutexLocker locker(&m_mutex);
 
@@ -815,7 +835,9 @@ bool DBManager::updateFlightPrice(const QString& Flight_id, double newPrice)
     bool success = query.exec();
 
     if (success && query.numRowsAffected() > 0) {
-        emit operateResult(true, "航班 " + Flight_id + " 价格更新为 " + QString::number(newPrice, 'f', 2) + " 元！");
+        emit operateResult(true,
+                           "航班 " + Flight_id + " 价格更新为 " + QString::number(newPrice, 'f', 2)
+                               + " 元！");
     } else if (success && query.numRowsAffected() == 0) {
         emit operateResult(false, "更新失败：未找到航班 " + Flight_id + "！");
         success = false;
@@ -828,32 +850,34 @@ bool DBManager::updateFlightPrice(const QString& Flight_id, double newPrice)
 }
 
 // 更新剩余座位数
-bool DBManager::updateFlightSeats(const QString& Flight_id, int newRemainSeats)
+bool DBManager::updateFlightSeats(const QString &Flight_id, int newRemainSeats)
 {
     QMutexLocker locker(&m_mutex);
 
-    if(!m_db.isOpen()){
+    if (!m_db.isOpen()) {
         emit operateResult(false, "更新失败：数据库未连接！");
         return false;
     }
 
     QSqlQuery getTotalSeatsQuery(m_db);
     getTotalSeatsQuery.prepare("SELECT total_seats FROM flight WHERE Flight_id = :Flight_id");
-    getTotalSeatsQuery.bindValue(":Flight_id",Flight_id);
-    if(!getTotalSeatsQuery.exec() || !getTotalSeatsQuery.next()){
+    getTotalSeatsQuery.bindValue(":Flight_id", Flight_id);
+    if (!getTotalSeatsQuery.exec() || !getTotalSeatsQuery.next()) {
         emit operateResult(false, "更新失败：未找到航班 " + Flight_id + "! ");
         return false;
     }
     int total_seats = getTotalSeatsQuery.value("total_seats").toInt();
-    if(newRemainSeats < 0 || newRemainSeats > total_seats){
-        emit operateResult(false, "更新失败：剩余座位不能小于 0 或大于总座位（" + QString::number(total_seats) + "）！");
+    if (newRemainSeats < 0 || newRemainSeats > total_seats) {
+        emit operateResult(false,
+                           "更新失败：剩余座位不能小于 0 或大于总座位（"
+                               + QString::number(total_seats) + "）！");
         return false;
     }
 
     QSqlQuery query(m_db);
     QString sql = "UPDATE flight SET remain_seats = :newRemainSeats WHERE Flight_id = :Flight_id";
 
-    if(!query.prepare(sql)){
+    if (!query.prepare(sql)) {
         QString errMsg = "[DB]  更新预处理失败：" + query.lastError().text();
         qCritical() << errMsg;
         emit operateResult(false, errMsg);
@@ -864,10 +888,11 @@ bool DBManager::updateFlightSeats(const QString& Flight_id, int newRemainSeats)
     query.bindValue(":Flight_id", Flight_id);
     bool success = query.exec();
 
-    if(success && query.numRowsAffected() > 0){
-        emit operateResult(true, "航班 " + Flight_id + " 剩余座位更新为 " + QString::number(newRemainSeats) + "！");
-    }
-    else{
+    if (success && query.numRowsAffected() > 0) {
+        emit operateResult(true,
+                           "航班 " + Flight_id + " 剩余座位更新为 "
+                               + QString::number(newRemainSeats) + "！");
+    } else {
         QString errMsg = "[DB] 更新失败：" + query.lastError().text();
         qCritical() << errMsg;
         emit operateResult(false, errMsg);
@@ -876,11 +901,11 @@ bool DBManager::updateFlightSeats(const QString& Flight_id, int newRemainSeats)
 }
 
 // 更新航班状态
-bool DBManager::updateFlightStatus(const QString& Flight_id, int newststus)
+bool DBManager::updateFlightStatus(const QString &Flight_id, int newststus)
 {
     QMutexLocker locker(&m_mutex);
 
-    if(!m_db.isOpen()){
+    if (!m_db.isOpen()) {
         emit operateResult(false, "更新失败：数据库未连接！");
         return false;
     }
@@ -900,7 +925,9 @@ bool DBManager::updateFlightStatus(const QString& Flight_id, int newststus)
     bool success = query.exec();
 
     if (success && query.numRowsAffected() > 0) {
-        emit operateResult(true, "航班 " + Flight_id + " 状态更新为 " + QString::number(newststus) + "！ ");
+        emit operateResult(true,
+                           "航班 " + Flight_id + " 状态更新为 " + QString::number(newststus)
+                               + "！ ");
     } else if (success && query.numRowsAffected() == 0) {
         emit operateResult(false, "更新失败：未找到航班 " + Flight_id + "！");
         success = false;
@@ -913,7 +940,7 @@ bool DBManager::updateFlightStatus(const QString& Flight_id, int newststus)
 }
 
 // 删除航班
-bool DBManager::deleteFlight(const QString& Flight_id)
+bool DBManager::deleteFlight(const QString &Flight_id)
 {
     QMutexLocker locker(&m_mutex);
 
@@ -948,7 +975,7 @@ bool DBManager::deleteFlight(const QString& Flight_id)
 }
 
 // 收藏航班
-bool DBManager::collectFlight(int userId, const QString& flightId)
+bool DBManager::collectFlight(int userId, const QString &flightId)
 {
     QMutexLocker locker(&m_mutex);
 
@@ -981,7 +1008,7 @@ bool DBManager::collectFlight(int userId, const QString& flightId)
 }
 
 // 取消收藏航班
-bool DBManager::cancelCollectFlight(int userId, const QString& flightId)
+bool DBManager::cancelCollectFlight(int userId, const QString &flightId)
 {
     QMutexLocker locker(&m_mutex);
 
@@ -1047,8 +1074,10 @@ QVariantList DBManager::queryCollectedFlights(int userId)
         flightMap["Flight_id"] = query.value("Flight_id").toString();
         flightMap["Departure"] = query.value("Departure").toString();
         flightMap["Destination"] = query.value("Destination").toString();
-        flightMap["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-        flightMap["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        flightMap["depart_time"]
+            = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        flightMap["arrive_time"]
+            = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
         flightMap["price"] = query.value("price").toDouble();
         flightMap["total_seats"] = query.value("total_seats").toInt();
         flightMap["remain_seats"] = query.value("remain_seats").toInt();
@@ -1061,7 +1090,7 @@ QVariantList DBManager::queryCollectedFlights(int userId)
 }
 
 // 按航班号查询收藏航班
-QVariantList DBManager::queryCollectedFlightByNum(int userId, const QString& Flight_id)
+QVariantList DBManager::queryCollectedFlightByNum(int userId, const QString &Flight_id)
 {
     QMutexLocker locker(&m_mutex);
     QVariantList flightList;
@@ -1095,8 +1124,10 @@ QVariantList DBManager::queryCollectedFlightByNum(int userId, const QString& Fli
         flightMap["Flight_id"] = query.value("Flight_id").toString();
         flightMap["Departure"] = query.value("Departure").toString();
         flightMap["Destination"] = query.value("Destination").toString();
-        flightMap["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-        flightMap["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        flightMap["depart_time"]
+            = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        flightMap["arrive_time"]
+            = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
         flightMap["price"] = query.value("price").toDouble();
         flightMap["total_seats"] = query.value("total_seats").toInt();
         flightMap["remain_seats"] = query.value("remain_seats").toInt();
@@ -1109,7 +1140,10 @@ QVariantList DBManager::queryCollectedFlightByNum(int userId, const QString& Fli
 }
 
 // 按地点，日期查询收藏航班
-QVariantList DBManager::queryCollectedFlightsByCondition(int userId, const QString& departure, const QString& destination, const QString& departDate)
+QVariantList DBManager::queryCollectedFlightsByCondition(int userId,
+                                                         const QString &departure,
+                                                         const QString &destination,
+                                                         const QString &departDate)
 {
     QMutexLocker locker(&m_mutex);
     QVariantList flightList;
@@ -1166,8 +1200,10 @@ QVariantList DBManager::queryCollectedFlightsByCondition(int userId, const QStri
         flightMap["Flight_id"] = query.value("Flight_id").toString();
         flightMap["Departure"] = query.value("Departure").toString();
         flightMap["Destination"] = query.value("Destination").toString();
-        flightMap["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-        flightMap["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        flightMap["depart_time"]
+            = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        flightMap["arrive_time"]
+            = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
         flightMap["price"] = query.value("price").toDouble();
         flightMap["total_seats"] = query.value("total_seats").toInt();
         flightMap["remain_seats"] = query.value("remain_seats").toInt();
@@ -1180,7 +1216,7 @@ QVariantList DBManager::queryCollectedFlightsByCondition(int userId, const QStri
 }
 
 // 判断用户是否已收藏某航班
-bool DBManager::isFlightCollected(int userId, const QString& flightId)
+bool DBManager::isFlightCollected(int userId, const QString &flightId)
 {
     QMutexLocker locker(&m_mutex);
 
@@ -1209,7 +1245,8 @@ bool DBManager::isFlightCollected(int userId, const QString& flightId)
 }
 
 // 打印航班（id）
-void DBManager::printFlight(const QVariantMap &flight) {
+void DBManager::printFlight(const QVariantMap &flight)
+{
     if (flight.isEmpty()) {
         qInfo() << "查询结果：无此航班\n";
         return;
@@ -1227,11 +1264,13 @@ void DBManager::printFlight(const QVariantMap &flight) {
 }
 
 // 打印航班列表
-void DBManager::printFlightList(const QVariantList &flightList) {
+void DBManager::printFlightList(const QVariantList &flightList)
+{
     qInfo() << "\n===== 航班列表（共" << flightList.size() << "条）=====";
     for (const auto &flightVar : flightList) {
         QVariantMap flight = flightVar.toMap();
-        qInfo() << QString("航班号：%1 | 出发地：%2 | 目的地：%3 | 起飞时间：%4 | 票价：%5 元 | 剩余座位：%6")
+        qInfo() << QString("航班号：%1 | 出发地：%2 | 目的地：%3 | 起飞时间：%4 | 票价：%5 元 | "
+                           "剩余座位：%6")
                        .arg(flight["flightId"].toString())
                        .arg(flight["departure"].toString())
                        .arg(flight["destination"].toString())
@@ -1243,7 +1282,7 @@ void DBManager::printFlightList(const QVariantList &flightList) {
 }
 
 // 管理员登录验证
-bool DBManager::verifyAdminLogin(const QString& adminName, const QString& password)
+bool DBManager::verifyAdminLogin(const QString &adminName, const QString &password)
 {
     QMutexLocker locker(&m_mutex);
 
@@ -1374,12 +1413,15 @@ QVariantList DBManager::queryMyOrders(int userId)
             order["flight_id"] = query.value("flight_id").toString();
             order["passenger_name"] = query.value("passenger_name").toString();
             order["passenger_idcard"] = query.value("passenger_idcard").toString();
-            order["order_time"] = query.value("order_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["order_time"]
+                = query.value("order_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
             order["status"] = query.value("status").toString();
             order["departure"] = query.value("Departure").toString();
             order["destination"] = query.value("Destination").toString();
-            order["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-            order["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["depart_time"]
+                = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["arrive_time"]
+                = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
             order["price"] = query.value("price").toDouble();
             order["remain_seats"] = query.value("remain_seats").toInt();
 
@@ -1399,11 +1441,11 @@ QVariantList DBManager::queryMyOrders(int userId)
 
 // 按条件查询我的订单
 QVariantList DBManager::queryMyOrdersByCondition(int userId,
-                                                 const QString& flightId,
-                                                 const QString& passengerName,
-                                                 const QString& status,
-                                                 const QString& startDate,
-                                                 const QString& endDate)
+                                                 const QString &flightId,
+                                                 const QString &passengerName,
+                                                 const QString &status,
+                                                 const QString &startDate,
+                                                 const QString &endDate)
 {
     QMutexLocker locker(&m_mutex);
     QVariantList result;
@@ -1499,12 +1541,15 @@ QVariantList DBManager::queryMyOrdersByCondition(int userId,
             order["flight_id"] = query.value("flight_id").toString();
             order["passenger_name"] = query.value("passenger_name").toString();
             order["passenger_idcard"] = query.value("passenger_idcard").toString();
-            order["order_time"] = query.value("order_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["order_time"]
+                = query.value("order_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
             order["status"] = query.value("status").toString();
             order["departure"] = query.value("Departure").toString();
             order["destination"] = query.value("Destination").toString();
-            order["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-            order["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["depart_time"]
+                = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["arrive_time"]
+                = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
             order["price"] = query.value("price").toDouble();
             order["remain_seats"] = query.value("remain_seats").toInt();
 
@@ -1577,8 +1622,10 @@ QVariantMap DBManager::queryOrderDetail(int userId, int orderId)
         result["status"] = query.value("status").toString();
         result["departure"] = query.value("Departure").toString();
         result["destination"] = query.value("Destination").toString();
-        result["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-        result["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        result["depart_time"]
+            = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+        result["arrive_time"]
+            = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
         result["price"] = query.value("price").toDouble();
         result["total_seats"] = query.value("total_seats").toInt();
         result["remain_seats"] = query.value("remain_seats").toInt();
@@ -1595,7 +1642,6 @@ QVariantMap DBManager::queryOrderDetail(int userId, int orderId)
 
     return result;
 }
-
 
 // 检查订单是否存在
 bool DBManager::isOrderExists(int userId, int orderId)
@@ -1627,7 +1673,7 @@ QStringList DBManager::getOrderStatusList()
 }
 
 // 辅助函数：读取图片文件为二进制（带压缩）
-QByteArray DBManager::readImageToBlob(const QString& imgPath, int quality)
+QByteArray DBManager::readImageToBlob(const QString &imgPath, int quality)
 {
     // 检查文件是否存在
     QFile file(imgPath);
@@ -1665,12 +1711,11 @@ QByteArray DBManager::readImageToBlob(const QString& imgPath, int quality)
 }
 
 // 发布帖子
-bool DBManager::publishPost(
-    const QString& title,
-    const QString& content,
-    int userId,
-    const QByteArray& imgBlob,
-    const QString& imgFormat)
+bool DBManager::publishPost(const QString &title,
+                            const QString &content,
+                            int userId,
+                            const QByteArray &imgBlob,
+                            const QString &imgFormat)
 {
     if (!isConnected() || title.isEmpty() || content.isEmpty() || userId <= 0) {
         emit operateResult(false, "标题/正文不能为空");
@@ -1697,18 +1742,15 @@ bool DBManager::publishPost(
 }
 
 // 通过文件路径存储发布
-bool DBManager::publishPostWithPath(
-    const QString& title,
-    const QString& content,
-    int userId,
-    const QString& imgPath)
+bool DBManager::publishPostWithPath(const QString &title,
+                                    const QString &content,
+                                    int userId,
+                                    const QString &imgPath)
 {
-
     //将路径修改为合法路径
-    QString path=imgPath.mid(8);
+    QString path = imgPath.mid(8);
     path = path.replace('/', '\\');
     path = QUrl::fromPercentEncoding(path.toUtf8());
-
 
     if (!isConnected() || title.isEmpty() || content.isEmpty() || userId <= 0 || imgPath.isEmpty()) {
         emit operateResult(false, "参数错误或数据库未连接");
@@ -1725,7 +1767,8 @@ bool DBManager::publishPostWithPath(
     // 获取图片格式（后缀）
     QString imgFormat = path.split(".").last().toLower();
     // 兼容jpg/jpeg
-    if (imgFormat == "jpeg") imgFormat = "jpg";
+    if (imgFormat == "jpeg")
+        imgFormat = "jpg";
 
     // 复用原有publishPost函数存入数据库
     return publishPost(title, content, userId, imgBlob, imgFormat);
@@ -1735,7 +1778,8 @@ bool DBManager::publishPostWithPath(
 QVariantMap DBManager::queryPostDetail(int postId, int currentUserId)
 {
     QVariantMap postMap;
-    if (!isConnected() || postId <= 0) return postMap;
+    if (!isConnected() || postId <= 0)
+        return postMap;
 
     // 查询帖子基础信息
     QSqlQuery query(m_db);
@@ -1768,7 +1812,8 @@ QVariantMap DBManager::queryPostDetail(int postId, int currentUserId)
 // 点赞
 bool DBManager::likePost(int userId, int postId)
 {
-    if (!isConnected() || userId <= 0 || postId <= 0) return false;
+    if (!isConnected() || userId <= 0 || postId <= 0)
+        return false;
     if (isPostLiked(userId, postId)) {
         emit operateResult(false, "已点赞");
         return false;
@@ -1795,7 +1840,8 @@ bool DBManager::likePost(int userId, int postId)
 // 取消点赞
 bool DBManager::cancelLikePost(int userId, int postId)
 {
-    if (!isConnected() || userId <= 0 || postId <= 0) return false;
+    if (!isConnected() || userId <= 0 || postId <= 0)
+        return false;
     if (!isPostLiked(userId, postId)) {
         emit operateResult(false, "未点赞");
         return false;
@@ -1822,10 +1868,12 @@ bool DBManager::cancelLikePost(int userId, int postId)
 // 是否点赞
 bool DBManager::isPostLiked(int userId, int postId)
 {
-    if (!isConnected() || userId <= 0 || postId <= 0) return false;
+    if (!isConnected() || userId <= 0 || postId <= 0)
+        return false;
 
     QSqlQuery query(m_db);
-    query.prepare("SELECT 1 FROM user_post_likes WHERE user_id = :user_id AND post_id = :post_id LIMIT 1");
+    query.prepare(
+        "SELECT 1 FROM user_post_likes WHERE user_id = :user_id AND post_id = :post_id LIMIT 1");
     query.bindValue(":user_id", userId);
     query.bindValue(":post_id", postId);
 
@@ -1835,7 +1883,8 @@ bool DBManager::isPostLiked(int userId, int postId)
 // 喜欢
 bool DBManager::favoritePost(int userId, int postId)
 {
-    if (!isConnected() || userId <= 0 || postId <= 0) return false;
+    if (!isConnected() || userId <= 0 || postId <= 0)
+        return false;
     if (isPostFavorited(userId, postId)) {
         emit operateResult(false, "已喜欢");
         return false;
@@ -1861,7 +1910,8 @@ bool DBManager::favoritePost(int userId, int postId)
 // 取消喜欢
 bool DBManager::cancelFavoritePost(int userId, int postId)
 {
-    if (!isConnected() || userId <= 0 || postId <= 0) return false;
+    if (!isConnected() || userId <= 0 || postId <= 0)
+        return false;
     if (!isPostFavorited(userId, postId)) {
         emit operateResult(false, "未喜欢");
         return false;
@@ -1869,7 +1919,8 @@ bool DBManager::cancelFavoritePost(int userId, int postId)
 
     m_db.transaction();
     QSqlQuery query(m_db);
-    query.prepare("DELETE FROM user_post_favorites WHERE user_id = :user_id AND post_id = :post_id");
+    query.prepare(
+        "DELETE FROM user_post_favorites WHERE user_id = :user_id AND post_id = :post_id");
     query.bindValue(":user_id", userId);
     query.bindValue(":post_id", postId);
 
@@ -1887,10 +1938,12 @@ bool DBManager::cancelFavoritePost(int userId, int postId)
 // 是否喜欢
 bool DBManager::isPostFavorited(int userId, int postId)
 {
-    if (!isConnected() || userId <= 0 || postId <= 0) return false;
+    if (!isConnected() || userId <= 0 || postId <= 0)
+        return false;
 
     QSqlQuery query(m_db);
-    query.prepare("SELECT 1 FROM user_post_favorites WHERE user_id = :user_id AND post_id = :post_id LIMIT 1");
+    query.prepare("SELECT 1 FROM user_post_favorites WHERE user_id = :user_id AND post_id = "
+                  ":post_id LIMIT 1");
     query.bindValue(":user_id", userId);
     query.bindValue(":post_id", postId);
 
@@ -1898,7 +1951,7 @@ bool DBManager::isPostFavorited(int userId, int postId)
 }
 
 // Blob转QImage
-QString DBManager::blobToImage(const QByteArray& blob, const QString& format)
+QString DBManager::blobToImage(const QByteArray &blob, const QString &format)
 {
     QImage image;
     image.loadFromData(blob, format.toUtf8());
@@ -1912,4 +1965,118 @@ QString DBManager::blobToImage(const QByteArray& blob, const QString& format)
     return QString("data:image/%1;base64,%2")
         .arg(format.toLower())
         .arg(QString(byteArray.toBase64()));
+}
+// 获取当前登录用户的手机号
+QString DBManager::getCurrentUserPhone() const
+{
+    return m_currentUserPhone;
+}
+
+// 获取当前登录用户的身份证号
+QString DBManager::getCurrentUserIdCard() const
+{
+    return m_currentUserIdCard;
+}
+
+
+
+// 更新当前用户的手机号
+bool DBManager::updateUserPhone(const QString& phone)
+{
+    QSqlQuery query(m_db);
+    query.prepare("UPDATE user_info SET phone = ? WHERE Uid = ?");
+    query.addBindValue(phone);
+    query.addBindValue(m_currentUserId);
+
+    if (query.exec()) {
+        m_currentUserPhone = phone;
+        emit userInfoChanged();
+        emit userPhoneUpdated(true, "手机号更新成功");
+        qDebug() << "用户手机号更新成功，用户ID：" << m_currentUserId << "，手机号：" << phone;
+        return true;
+    } else {
+        qCritical() << "更新手机号失败：" << query.lastError().text();
+        emit userPhoneUpdated(false, "更新手机号失败：" + query.lastError().text());
+        return false;
+    }
+}
+
+// 更新当前用户的身份证号
+bool DBManager::updateUserIdCard(const QString& idCard)
+{
+    QSqlQuery query(m_db);
+    query.prepare("UPDATE user_info SET idcard = ? WHERE Uid = ?");
+    query.addBindValue(idCard);
+    query.addBindValue(m_currentUserId);
+
+    if (query.exec()) {
+        m_currentUserIdCard = idCard;
+        emit userInfoChanged();
+        emit userIdCardUpdated(true, "身份证号更新成功");
+        qDebug() << "用户身份证号更新成功，用户ID：" << m_currentUserId << "，身份证号：" << idCard;
+        return true;
+    } else {
+        qCritical() << "更新身份证号失败：" << query.lastError().text();
+        emit userIdCardUpdated(false, "更新身份证号失败：" + query.lastError().text());
+        return false;
+    }
+}
+int DBManager::createOrder(int userId, const QString &flightId, const QString &status)
+{
+    if (!m_db.isOpen()) {
+        qCritical() << "数据库未连接";
+        emit orderCreatedFailed("数据库未连接");
+        return -1;
+    }
+
+    // 1. 检查航班是否存在
+    QSqlQuery flightQuery(m_db);
+    flightQuery.prepare("SELECT Flight_id, remain_seats FROM flight WHERE Flight_id = ?");
+    flightQuery.addBindValue(flightId);
+
+    if (!flightQuery.exec() || !flightQuery.next()) {
+        emit orderCreatedFailed("航班不存在");
+        return -1;
+    }
+
+    int remainSeats = flightQuery.value("remain_seats").toInt();
+    if (remainSeats <= 0) {
+        emit orderCreatedFailed("航班已无余票");
+        return -1;
+    }
+
+    // 2. 创建订单
+    QSqlQuery orderQuery(m_db);
+    orderQuery.prepare("INSERT INTO `order` (user_id, flight_id, status) VALUES (?, ?, ?)");
+    orderQuery.addBindValue(userId);
+    orderQuery.addBindValue(flightId);
+    orderQuery.addBindValue(status);
+
+    if (!orderQuery.exec()) {
+        qCritical() << "创建订单失败：" << orderQuery.lastError().text();
+        emit orderCreatedFailed("创建订单失败：" + orderQuery.lastError().text());
+        return -1;
+    }
+
+    int orderId = orderQuery.lastInsertId().toInt();
+
+    // 3. 更新航班剩余座位数
+    QSqlQuery updateFlightQuery(m_db);
+    updateFlightQuery.prepare("UPDATE flight SET remain_seats = remain_seats - 1 WHERE Flight_id = ?");
+    updateFlightQuery.addBindValue(flightId);
+
+    if (!updateFlightQuery.exec()) {
+        // 如果更新失败，可以回滚订单创建
+        QSqlQuery deleteOrderQuery(m_db);
+        deleteOrderQuery.prepare("DELETE FROM `order` WHERE order_id = ?");
+        deleteOrderQuery.addBindValue(orderId);
+        deleteOrderQuery.exec();
+
+        emit orderCreatedFailed("更新航班座位失败");
+        return -1;
+    }
+
+    qDebug() << "订单创建成功，订单ID：" << orderId;
+    emit orderCreatedSuccess(orderId);
+    return orderId;
 }

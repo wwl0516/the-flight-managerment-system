@@ -89,8 +89,8 @@ HusWindow{
                         iconSource:HusIcon.StarOutlined
                     },
                     {
-                        key:"shareManage",
-                        label:qsTr("修改分享信息"),
+                        key:"userManage",
+                        label:qsTr("修改用户信息"),
                         iconSource:HusIcon.StarOutlined
                     },
                     {
@@ -116,7 +116,7 @@ HusWindow{
                         if(key==="about_us"){
                             right_page.source="AboutUs.qml"
                         }
-                        if(key==="discover"){
+                        if(key==="userManage"){
                             right_page.source="Discovery.qml"
                         }
                         if(key==="search_flight"){

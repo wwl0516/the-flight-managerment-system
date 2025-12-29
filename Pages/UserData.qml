@@ -48,7 +48,8 @@ ColumnLayout{
         }
         HusInput{
             id:usernameInput
-            width:200
+            Layout.preferredWidth: 300
+            Layout.maximumWidth: 300
             text:DBManager.getCurrentUserName()
             placeholderText: "请输入用户名"
 
@@ -66,9 +67,47 @@ ColumnLayout{
         }
         HusInput{
             id:emailInput
-            width:200
+            Layout.preferredWidth: 300
+            Layout.maximumWidth: 300
             text:DBManager.getCurrentUserEmail()
             placeholderText: "请输入邮箱地址"
+        }
+    }
+
+
+    //手机号展示
+    RowLayout{
+        Layout.fillHeight: true
+        Layout.fillWidth: true
+        spacing:10
+        HusText{
+            text:"手机号:"
+            font.pointSize: 12
+        }
+        HusInput{
+            id:phoneInput
+            Layout.preferredWidth: 300
+            Layout.maximumWidth: 300
+            text:DBManager.getCurrentUserPhone()
+            placeholderText: "请输入手机号"
+        }
+    }
+
+    //身份证号展示
+    RowLayout{
+        Layout.fillHeight: true
+        Layout.fillWidth: true
+        spacing:10
+        HusText{
+            text:"身份证号:"
+            font.pointSize: 12
+        }
+        HusInput{
+            id:idcardInput
+            Layout.preferredWidth: 300
+            Layout.maximumWidth: 300
+            text:DBManager.getCurrentUserIdCard()
+            placeholderText: "请输入身份证号"
         }
     }
 
@@ -103,13 +142,18 @@ ColumnLayout{
     //查询并关系用户数据
     function updata()
     {
-        usernameInput.text=qsTr(DBManager.getCurrentUserName())
-        emailInput.text=qsTr(DBManager.getCurrentUserEmail())
+        usernameInput.text=DBManager.getCurrentUserName()
+        emailInput.text=DBManager.getCurrentUserEmail()
+        phoneInput.text=DBManager.getCurrentUserPhone()
+        idcardInput.text=DBManager.getCurrentUserIdCard()
     }
 
     //保存上传信息
     function saveData()
     {
-        update()
+        //非法检测（没写
+
+        DBManager.updateUserIdCard(idcardInput.text)
+        DBManager.updateUserPhone(phoneInput.text)
     }
 }

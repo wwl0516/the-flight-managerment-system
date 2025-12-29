@@ -144,6 +144,20 @@ HusRectangle{
                     font.bold: true
                 }
             }
+            //价格
+            HusRectangle{
+                Layout.fillHeight: true
+                Layout.preferredWidth: 100
+                color: "Blue"
+                Layout.alignment: Qt.AlignVCenter
+                radius: 10
+                HusText{
+                    anchors.centerIn: parent
+                    text: qsTr(String(card_data.price)+"元")
+                    font.pixelSize: 17
+                    font.bold: true
+                }
+            }
             //修改按钮
             HusButton{
                 Layout.fillHeight: true
@@ -266,7 +280,7 @@ HusRectangle{
                 text: qsTr("删除")
                 type: HusButton.Type_Primary
                 Layout.preferredWidth: 100
-
+                colorBg: "red"
 
                 TapHandler{
                     target: parent

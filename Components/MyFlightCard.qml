@@ -17,7 +17,8 @@ HusRectangle{
         "price":"1145",
         "total_seats":3,
         "remain_seats":2,
-        "status":2
+        "status":2,
+        "order_id":""
     }
     id:flight_information
     width: parent.width
@@ -143,17 +144,16 @@ HusRectangle{
                 Layout.fillWidth: true
             }
 
-            //价格&购买按钮
+            //价格&取消购买按钮
             HusButton{
-                text: qsTr(card_data.price+"元")
+                text: qsTr("取消订单")
                 type: HusButton.Type_Primary
                 Layout.preferredWidth: 100
-                onHoveredChanged: text = hovered ? qsTr("购买") : qsTr(card_data.price+"元")
 
 
                 TapHandler{
                     target: parent
-                    onTapped: DBManager.createOrder(DBManager.getCurrentUserId(),card_data.flight_id,"114514","1919810")
+                    onTapped: DBManager.deleteOrder(card_data.order_id)
                 }
             }
         }

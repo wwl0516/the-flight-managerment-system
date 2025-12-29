@@ -55,6 +55,7 @@ ColumnLayout{
 
         function onOperateResult(success,message){
             if(message.includes("取消收藏成功") && success){
+                console.log("abcdefg");
                 get_favourite_flights();
             }
         }

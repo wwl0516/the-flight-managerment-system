@@ -31,15 +31,16 @@ ColumnLayout{
             required property var modelData
             height: 150
             card_data: {
-                "flight_id":modelData.Flight_id,
-                "departure":modelData.Departure,
-                "destination":modelData.Destination,
+                "flight_id":modelData.flight_id,
+                "departure":modelData.departure,
+                "destination":modelData.destination,
                 "depart_time":modelData.depart_time,
                 "arrive_time":modelData.arrive_time,
                 "price":modelData.price,
                 "total_seats":modelData.total_seats,
                 "remain_seats":modelData.remain_seats,
-                "status":modelData.status
+                "status":modelData.f_status,
+                "order_id":modelData.order_id
             }
         }
     }
@@ -54,7 +55,7 @@ ColumnLayout{
         target: DBManager
 
         function onOperateResult(success,message){
-            if(message.includes("取消收藏成功") && success){
+            if(message.includes("订单") && message.includes("删除成功") && success){
                 get_order_flights();
             }
         }

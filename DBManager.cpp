@@ -1394,11 +1394,12 @@ QVariantList DBManager::queryMyOrders(int userId)
             o.passenger_name,
             o.passenger_idcard,
             o.order_time,
-            o.status,
+            o.status AS o_status,
             f.Departure,
             f.Destination,
             f.depart_time,
             f.arrive_time,
+            f.status AS f_status,
             f.price,
             f.remain_seats
         FROM `order` o
@@ -1424,15 +1425,13 @@ QVariantList DBManager::queryMyOrders(int userId)
             order["flight_id"] = query.value("flight_id").toString();
             order["passenger_name"] = query.value("passenger_name").toString();
             order["passenger_idcard"] = query.value("passenger_idcard").toString();
-            order["order_time"]
-                = query.value("order_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-            order["status"] = query.value("status").toString();
+            order["order_time"] = query.value("order_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["o_status"] = query.value("o_status").toInt();
             order["departure"] = query.value("Departure").toString();
             order["destination"] = query.value("Destination").toString();
-            order["depart_time"]
-                = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-            order["arrive_time"]
-                = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["f_status"] = query.value("f_status").toInt();
             order["price"] = query.value("price").toDouble();
             order["remain_seats"] = query.value("remain_seats").toInt();
 
@@ -1450,13 +1449,8 @@ QVariantList DBManager::queryMyOrders(int userId)
     return result;
 }
 
-// 按条件查询我的订单
-QVariantList DBManager::queryMyOrdersByCondition(int userId,
-                                                 const QString &flightId,
-                                                 const QString &passengerName,
-                                                 const QString &status,
-                                                 const QString &startDate,
-                                                 const QString &endDate)
+// 查询所有订单
+QVariantList DBManager::queryAllOrders()
 {
     QMutexLocker locker(&m_mutex);
     QVariantList result;
@@ -1464,12 +1458,6 @@ QVariantList DBManager::queryMyOrdersByCondition(int userId,
     if (!m_db.isOpen()) {
         emit queryMyOrdersFailed("查询失败：数据库未连接！");
         emit operateResult(false, "查询失败：数据库未连接！");
-        return result;
-    }
-
-    if (userId <= 0) {
-        emit queryMyOrdersFailed("查询失败：用户ID无效！");
-        emit operateResult(false, "查询失败：用户ID无效！");
         return result;
     }
 
@@ -1481,68 +1469,25 @@ QVariantList DBManager::queryMyOrdersByCondition(int userId,
             o.passenger_name,
             o.passenger_idcard,
             o.order_time,
-            o.status,
+            o.status AS o_status,
             f.Departure,
             f.Destination,
             f.depart_time,
             f.arrive_time,
+            f.status AS f_status,
             f.price,
             f.remain_seats
         FROM `order` o
         INNER JOIN flight f ON o.flight_id = f.Flight_id
-        WHERE o.user_id = :userId
+        ORDER BY o.order_time DESC
     )";
 
-    QList<QString> conditions;
-    QVariantMap params;
-    params[":userId"] = userId;
-
-    // 添加航班号条件
-    if (!flightId.isEmpty()) {
-        conditions.append("o.flight_id LIKE :flightId");
-        params[":flightId"] = "%" + flightId + "%";
-    }
-
-    // 添加乘客姓名条件
-    if (!passengerName.isEmpty()) {
-        conditions.append("o.passenger_name LIKE :passengerName");
-        params[":passengerName"] = "%" + passengerName + "%";
-    }
-
-    // 添加状态条件
-    if (!status.isEmpty() && status != "全部") {
-        conditions.append("o.status = :status");
-        params[":status"] = status;
-    }
-
-    // 添加时间范围条件
-    if (!startDate.isEmpty()) {
-        conditions.append("DATE(o.order_time) >= :startDate");
-        params[":startDate"] = startDate;
-    }
-    if (!endDate.isEmpty()) {
-        conditions.append("DATE(o.order_time) <= :endDate");
-        params[":endDate"] = endDate;
-    }
-
-    // 拼接条件
-    if (!conditions.isEmpty()) {
-        sql += " AND " + conditions.join(" AND ");
-    }
-
-    sql += " ORDER BY o.order_time DESC";
-
     if (!query.prepare(sql)) {
-        QString errMsg = "[DB] 条件查询订单预处理失败：" + query.lastError().text();
+        QString errMsg = "[DB] 查询订单预处理失败：" + query.lastError().text();
         qCritical() << errMsg;
         emit queryMyOrdersFailed("查询失败：数据库操作错误！");
         emit operateResult(false, errMsg);
         return result;
-    }
-
-    // 绑定参数
-    for (auto it = params.constBegin(); it != params.constEnd(); ++it) {
-        query.bindValue(it.key(), it.value());
     }
 
     if (query.exec()) {
@@ -1552,103 +1497,25 @@ QVariantList DBManager::queryMyOrdersByCondition(int userId,
             order["flight_id"] = query.value("flight_id").toString();
             order["passenger_name"] = query.value("passenger_name").toString();
             order["passenger_idcard"] = query.value("passenger_idcard").toString();
-            order["order_time"]
-                = query.value("order_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-            order["status"] = query.value("status").toString();
+            order["order_time"] = query.value("order_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["o_status"] = query.value("o_status").toInt();
             order["departure"] = query.value("Departure").toString();
             order["destination"] = query.value("Destination").toString();
-            order["depart_time"]
-                = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-            order["arrive_time"]
-                = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["depart_time"] = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["arrive_time"] = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
+            order["f_status"] = query.value("f_status").toInt();
             order["price"] = query.value("price").toDouble();
             order["remain_seats"] = query.value("remain_seats").toInt();
 
             result.append(order);
         }
         emit queryMyOrdersSuccess(result);
-        emit operateResult(true, QString("条件查询成功，共 %1 个订单").arg(result.size()));
+        emit operateResult(true, QString("查询成功，共 %1 个订单").arg(result.size()));
     } else {
-        QString errMsg = "[DB] 条件查询订单失败：" + query.lastError().text();
+        QString errMsg = "[DB] 查询订单失败：" + query.lastError().text();
         qCritical() << errMsg;
         emit queryMyOrdersFailed("查询失败：" + query.lastError().text());
         emit operateResult(false, errMsg);
-    }
-
-    return result;
-}
-
-// 获取订单详情
-QVariantMap DBManager::queryOrderDetail(int userId, int orderId)
-{
-    QVariantMap result;
-    QMutexLocker locker(&m_mutex);
-
-    if (!m_db.isOpen()) {
-        emit orderDetailQueryFailed("查询失败：数据库未连接！");
-        emit operateResult(false, "查询失败：数据库未连接！");
-        return result;
-    }
-
-    if (userId <= 0 || orderId <= 0) {
-        emit orderDetailQueryFailed("查询失败：参数无效！");
-        emit operateResult(false, "查询失败：参数无效！");
-        return result;
-    }
-
-    QSqlQuery query(m_db);
-    query.prepare(R"(
-        SELECT
-            o.order_id,
-            o.flight_id,
-            o.passenger_name,
-            o.passenger_idcard,
-            o.order_time,
-            o.status,
-            f.Departure,
-            f.Destination,
-            f.depart_time,
-            f.arrive_time,
-            f.price,
-            f.total_seats,
-            f.remain_seats,
-            f.status as flight_status,
-            u.User_name,
-            u.Email
-        FROM `order` o
-        INNER JOIN flight f ON o.flight_id = f.Flight_id
-        INNER JOIN user_info u ON o.user_id = u.Uid
-        WHERE o.order_id = :orderId AND o.user_id = :userId
-    )");
-
-    query.bindValue(":orderId", orderId);
-    query.bindValue(":userId", userId);
-
-    if (query.exec() && query.next()) {
-        result["order_id"] = query.value("order_id").toInt();
-        result["flight_id"] = query.value("flight_id").toString();
-        result["passenger_name"] = query.value("passenger_name").toString();
-        result["passenger_idcard"] = query.value("passenger_idcard").toString();
-        result["order_time"] = query.value("order_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-        result["status"] = query.value("status").toString();
-        result["departure"] = query.value("Departure").toString();
-        result["destination"] = query.value("Destination").toString();
-        result["depart_time"]
-            = query.value("depart_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-        result["arrive_time"]
-            = query.value("arrive_time").toDateTime().toString("yyyy-MM-dd HH:mm:ss");
-        result["price"] = query.value("price").toDouble();
-        result["total_seats"] = query.value("total_seats").toInt();
-        result["remain_seats"] = query.value("remain_seats").toInt();
-        result["flight_status"] = query.value("flight_status").toString();
-        result["user_name"] = query.value("User_name").toString();
-        result["email"] = query.value("Email").toString();
-
-        emit orderDetailQuerySuccess(result);
-        emit operateResult(true, "查询订单详情成功！");
-    } else {
-        emit orderDetailQueryFailed("查询失败：未找到该订单！");
-        emit operateResult(false, "查询失败：未找到该订单！");
     }
 
     return result;
@@ -2065,7 +1932,7 @@ bool DBManager::updateUserIdCard(const QString& idCard)
         return false;
     }
 }
-int DBManager::createOrder(int userId, const QString &flightId, const int status)
+bool DBManager::createOrder(int userId, const QString &flightId, const QString& passengerName, const QString& passergerIdcard)
 {
     if (!m_db.isOpen()) {
         qCritical() << "数据库未连接";
@@ -2080,29 +1947,30 @@ int DBManager::createOrder(int userId, const QString &flightId, const int status
 
     if (!flightQuery.exec() || !flightQuery.next()) {
         emit orderCreatedFailed("航班不存在");
-        return -1;
+        return false;
     }
 
     int remainSeats = flightQuery.value("remain_seats").toInt();
     if (remainSeats <= 0) {
         emit orderCreatedFailed("航班已无余票");
-        return -1;
+        return false;
     }
 
     // 2. 创建订单
     QSqlQuery orderQuery(m_db);
-    orderQuery.prepare("INSERT INTO `order` (user_id, flight_id, status) VALUES (?, ?, ?)");
+    orderQuery.prepare("INSERT INTO `order` (user_id, flight_id, passenger_name, passerger_idcard) VALUES (?, ?, ?)");
     orderQuery.addBindValue(userId);
     orderQuery.addBindValue(flightId);
-    orderQuery.addBindValue(status);
+    orderQuery.addBindValue(passengerName);
+    orderQuery.addBindValue(passergerIdcard);
 
     if (!orderQuery.exec()) {
         qCritical() << "创建订单失败：" << orderQuery.lastError().text();
         emit orderCreatedFailed("创建订单失败：" + orderQuery.lastError().text());
-        return -1;
+        return false;
     }
 
-    int orderId = orderQuery.lastInsertId().toInt();
+    QString orderId = orderQuery.lastInsertId().toString();
 
     // 3. 更新航班剩余座位数
     QSqlQuery updateFlightQuery(m_db);
@@ -2117,10 +1985,119 @@ int DBManager::createOrder(int userId, const QString &flightId, const int status
         deleteOrderQuery.exec();
 
         emit orderCreatedFailed("更新航班座位失败");
-        return -1;
+        return false;
     }
 
     qDebug() << "订单创建成功，订单ID：" << orderId;
-    emit orderCreatedSuccess(orderId);
-    return orderId;
+    return true;
+}
+bool DBManager::updateUserName(const QString& newUserName) {
+
+    if (newUserName.isEmpty()) {
+        qDebug() << "用户名不能为空";
+        emit userNameUpdated(false, "用户名不能为空");
+        return false;
+    }
+
+    if (!m_db.isOpen()) {
+        qDebug() << "数据库未连接";
+        emit userNameUpdated(false, "数据库未连接");
+        return false;
+    }
+    m_db.transaction();
+
+    try {
+        QSqlQuery query(m_db);
+        query.prepare("UPDATE user_info SET User_name = :newUserName WHERE Uid = :userId");
+        query.bindValue(":newUserName", newUserName);
+        query.bindValue(":userId", m_currentUserId);
+
+        if (!query.exec()) {
+            m_db.rollback();
+            QString errorMsg = query.lastError().text();
+            qDebug() << "更新用户名失败:" << errorMsg;
+            emit userNameUpdated(false, "更新用户名失败: " + errorMsg);
+            return false;
+        }
+        if (query.numRowsAffected() <= 0) {
+            m_db.rollback();
+            qDebug() << "用户不存在或用户名未改变";
+            emit userNameUpdated(false, "用户不存在或用户名未改变");
+            return false;
+        }
+        if (!m_db.commit()) {
+            m_db.rollback();
+            qDebug() << "事务提交失败";
+            emit userNameUpdated(false, "事务提交失败");
+            return false;
+        }
+        QString oldUserName = m_currentUserName;
+        m_currentUserName = newUserName;
+        qDebug() << "用户" << m_currentUserId << "用户名从" << oldUserName << "更新为" << newUserName;
+        emit userNameUpdated(true, "用户名更新成功");
+        emit userInfoChanged();
+        return true;
+
+    } catch (const std::exception& e) {
+        m_db.rollback();
+        qDebug() << "更新用户名时发生异常:" << e.what();
+        emit userNameUpdated(false, QString("更新用户名时发生异常: %1").arg(e.what()));
+        return false;
+    }
+}
+bool DBManager::updateUserEmail(const QString& newEmail) {
+
+    if (!m_db.isOpen()) {
+        qDebug() << "数据库未连接";
+        emit userEmailUpdated(false, "数据库未连接");
+        return false;
+    }
+    m_db.transaction();
+
+    try {
+        QSqlQuery query(m_db);
+        query.prepare("UPDATE user_info SET Email = :newEmail WHERE Uid = :userId");
+        query.bindValue(":newEmail", newEmail);
+        query.bindValue(":userId", m_currentUserId);
+
+        if (!query.exec()) {
+            m_db.rollback();
+            QString errorMsg = query.lastError().text();
+            qDebug() << "更新邮箱失败:" << errorMsg;
+            emit userEmailUpdated(false, "更新邮箱失败: " + errorMsg);
+            return false;
+        }
+        if (query.numRowsAffected() <= 0) {
+            m_db.rollback();
+            qDebug() << "用户不存在或邮箱未改变";
+            emit userEmailUpdated(false, "用户不存在或邮箱未改变");
+            return false;
+        }
+        if (!m_db.commit()) {
+            m_db.rollback();
+            qDebug() << "事务提交失败";
+            emit userEmailUpdated(false, "事务提交失败");
+            return false;
+        }
+
+        QString oldEmail = m_currentUserEmail;
+        m_currentUserEmail = newEmail;
+
+        // 11. 记录日志
+        qDebug() << "用户" << m_currentUserId << "邮箱从" << oldEmail << "更新为" << newEmail;
+
+        // 12. 发送成功信号
+        emit userEmailUpdated(true, "邮箱更新成功");
+
+        // 13. 发送用户信息变更信号，通知界面更新
+        emit userInfoChanged();
+
+        return true;
+
+    } catch (const std::exception& e) {
+        m_db.rollback();
+        qDebug() << "更新邮箱时发生异常:" << e.what();
+        emit userEmailUpdated(false, QString("更新邮箱时发生异常: %1").arg(e.what()));
+        return false;
+    }
 }

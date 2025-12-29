@@ -107,17 +107,11 @@ public:
                                    const QString &verifyCode,
                                    const QString &newPassword); // 忘记密码（验证码默认为0000）
 
-    Q_INVOKABLE QVariantList queryMyOrders(int userId); // 查看我的订单
-    Q_INVOKABLE QVariantList
-    queryMyOrdersByCondition(int userId,
-                             const QString &flightId = QString(),
-                             const QString &passengerName = QString(),
-                             const QString &status = QString(),
-                             const QString &startDate = QString(),
-                             const QString &endDate = QString());      // 按条件查询我的订单
-    Q_INVOKABLE QVariantMap queryOrderDetail(int userId, int orderId); // 获取订单详情
-    Q_INVOKABLE bool isOrderExists(int userId, int orderId);           // 检查订单是否存在
-    Q_INVOKABLE QStringList getOrderStatusList();                      // 获取订单状态列表
+    Q_INVOKABLE bool createOrder(int userId, const QString &flightId, const QString& passengerName, const QString& passergerIdcard);  // 创建订单
+    Q_INVOKABLE QVariantList queryMyOrders(int userId);  // 查看我的订单
+    Q_INVOKABLE QVariantList queryAllOrders();  // 查询所有订单
+    Q_INVOKABLE bool isOrderExists(int userId, int orderId);  // 检查订单是否存在
+    Q_INVOKABLE QStringList getOrderStatusList();  // 获取订单状态列表
 
     QByteArray readImageToBlob(const QString &imgPath,
                                int quality = 80); // 辅助函数：读取图片文件为二进制（带压缩）
@@ -145,11 +139,10 @@ public:
     Q_INVOKABLE QString getCurrentUserIdCard() const;  // 获取当前登录用户的身份证号
     Q_INVOKABLE bool updateUserPhone(const QString& phone);  // 更新当前用户的手机号
     Q_INVOKABLE bool updateUserIdCard(const QString& idCard);  // 更新当前用户的身份证号
-    Q_INVOKABLE int createOrder(  // 创建订单
-        int userId,
-        const QString &flightId,
-        const int status = 0  // 默认状态
-        );
+
+    Q_INVOKABLE bool updateUserName(const QString& newUserName);  // 更新当前用户的用户名
+    Q_INVOKABLE bool updateUserEmail(const QString& newEmail);    // 更新当前用户的邮箱
+
 signals:
     void connectionStateChanged(bool isConnected);        // 数据库连接信号
     void operateResult(bool success, const QString &msg); // 操作结果
@@ -174,7 +167,6 @@ signals:
     void queryMyOrdersFailed(const QString &errorMsg);
     void orderCanceledSuccess(int orderId);
     void orderCanceledFailed(const QString &errorMsg);
-    void orderCreatedSuccess(int orderId);
     void orderCreatedFailed(const QString &errorMsg);
     void orderDetailQuerySuccess(const QVariantMap &orderDetail);
     void orderDetailQueryFailed(const QString &errorMsg);
@@ -185,6 +177,8 @@ signals:
     void orderPaymentUpdated(int orderId, const QString &paymentStatus);
     void allOrdersQueried(const QVariantList &orders);
     void ordersQueriedByCondition(const QVariantList &orders);
+    void userNameUpdated(bool success, const QString& message);
+    void userEmailUpdated(bool success, const QString& message);
 private:
     explicit DBManager(QObject *parent = nullptr);
     ~DBManager() override;

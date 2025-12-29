@@ -1421,7 +1421,7 @@ QVariantList DBManager::queryMyOrders(int userId)
     if (query.exec()) {
         while (query.next()) {
             QVariantMap order;
-            order["order_id"] = query.value("order_id").toInt();
+            order["order_id"] = query.value("order_id").toString();
             order["flight_id"] = query.value("flight_id").toString();
             order["passenger_name"] = query.value("passenger_name").toString();
             order["passenger_idcard"] = query.value("passenger_idcard").toString();
@@ -1521,33 +1521,39 @@ QVariantList DBManager::queryAllOrders()
     return result;
 }
 
-// 检查订单是否存在
-bool DBManager::isOrderExists(int userId, int orderId)
+// 删除订单
+bool DBManager::deleteOrder(const QString& orderId)
 {
     QMutexLocker locker(&m_mutex);
 
     if (!m_db.isOpen()) {
-        return false;
-    }
-
-    if (userId <= 0 || orderId <= 0) {
+        emit operateResult(false, "删除失败：数据库未连接！");
         return false;
     }
 
     QSqlQuery query(m_db);
-    query.prepare("SELECT 1 FROM `order` WHERE order_id = :orderId AND user_id = :userId");
-    query.bindValue(":orderId", orderId);
-    query.bindValue(":userId", userId);
+    QString sql = "DELETE FROM order WHERE order_id = :order_id";
+    if (!query.prepare(sql)) {
+        QString errMsg = "[DB] 删除预处理失败：" + query.lastError().text();
+        qCritical() << errMsg;
+        emit operateResult(false, errMsg);
+        return false;
+    }
 
-    return query.exec() && query.next();
-}
+    query.bindValue(":order_id", orderId);
+    bool success = query.exec();
 
-// 获取订单状态列表
-QStringList DBManager::getOrderStatusList()
-{
-    QStringList statusList;
-    statusList << "全部" << "已支付" << "已取消" << "已完成" << "已退款";
-    return statusList;
+    if (success && query.numRowsAffected() > 0) {
+        emit operateResult(true, "订单 " + orderId + " 删除成功！");
+    } else if (success && query.numRowsAffected() == 0) {
+        emit operateResult(false, "删除失败：未找到订单 " + orderId + "！");
+        success = false;
+    } else {
+        QString errMsg = "[DB] 删除失败：" + query.lastError().text();
+        qCritical() << errMsg;
+        emit operateResult(false, errMsg);
+    }
+    return success;
 }
 
 // 辅助函数：读取图片文件为二进制（带压缩）
@@ -1932,65 +1938,70 @@ bool DBManager::updateUserIdCard(const QString& idCard)
         return false;
     }
 }
-bool DBManager::createOrder(int userId, const QString &flightId, const QString& passengerName, const QString& passergerIdcard)
+
+
+bool DBManager::createOrder(int userId, const QString &flightId, const QString& passengerName, const QString& passengerIdcard)
 {
+    // 1. 基础校验：数据库连接
     if (!m_db.isOpen()) {
         qCritical() << "数据库未连接";
         emit orderCreatedFailed("数据库未连接");
-        return -1;
+        return false;
     }
 
-    // 1. 检查航班是否存在
+    //  开启事务（必须在所有Query操作前，且保证闭环）
+    if (!m_db.transaction()) {
+        qCritical() << "开启事务失败：" << m_db.lastError().text();
+        emit orderCreatedFailed("创建订单失败：事务开启失败");
+        return false;
+    }
+
+    // 2. 原子扣减余票（解决超卖）
     QSqlQuery flightQuery(m_db);
-    flightQuery.prepare("SELECT Flight_id, remain_seats FROM flight WHERE Flight_id = ?");
+    flightQuery.prepare("UPDATE flight SET remain_seats = remain_seats - 1 WHERE Flight_id = ? AND remain_seats > 0");
     flightQuery.addBindValue(flightId);
-
-    if (!flightQuery.exec() || !flightQuery.next()) {
-        emit orderCreatedFailed("航班不存在");
+    if (!flightQuery.exec() || flightQuery.numRowsAffected() == 0) {
+        m_db.rollback();
+        emit orderCreatedFailed("航班已无余票或航班不存在");
         return false;
     }
 
-    int remainSeats = flightQuery.value("remain_seats").toInt();
-    if (remainSeats <= 0) {
-        emit orderCreatedFailed("航班已无余票");
-        return false;
-    }
+    // 3. 手动生成自定义订单 ID（核心：替代自增 ID）
+    // 格式：ORD + 年月日(YYYYMMDD) + 时分秒(HHmmss) + 毫秒(zzz)
+    QString timeStr = QDateTime::currentDateTime().toString("yyyyMMddHHmmsszzz");
+    QString orderId = QString("ORD%1").arg(timeStr);
 
-    // 2. 创建订单
+    // 4. 创建订单（插入手动生成的 order_id）
     QSqlQuery orderQuery(m_db);
-    orderQuery.prepare("INSERT INTO `order` (user_id, flight_id, passenger_name, passerger_idcard) VALUES (?, ?, ?)");
+    // 注意：INSERT 语句要包含 order_id 字段，值为我们生成的 ID
+    orderQuery.prepare("INSERT INTO `order` (order_id, user_id, flight_id, passenger_name, passenger_idcard) VALUES (?, ?, ?, ?, ?)");
+    orderQuery.addBindValue(orderId); // 绑定自定义订单 ID
     orderQuery.addBindValue(userId);
     orderQuery.addBindValue(flightId);
     orderQuery.addBindValue(passengerName);
-    orderQuery.addBindValue(passergerIdcard);
+    orderQuery.addBindValue(passengerIdcard);
 
     if (!orderQuery.exec()) {
+        m_db.rollback();
         qCritical() << "创建订单失败：" << orderQuery.lastError().text();
         emit orderCreatedFailed("创建订单失败：" + orderQuery.lastError().text());
         return false;
     }
 
-    QString orderId = orderQuery.lastInsertId().toString();
-
-    // 3. 更新航班剩余座位数
-    QSqlQuery updateFlightQuery(m_db);
-    updateFlightQuery.prepare("UPDATE flight SET remain_seats = remain_seats - 1 WHERE Flight_id = ?");
-    updateFlightQuery.addBindValue(flightId);
-
-    if (!updateFlightQuery.exec()) {
-        // 如果更新失败，可以回滚订单创建
-        QSqlQuery deleteOrderQuery(m_db);
-        deleteOrderQuery.prepare("DELETE FROM `order` WHERE order_id = ?");
-        deleteOrderQuery.addBindValue(orderId);
-        deleteOrderQuery.exec();
-
-        emit orderCreatedFailed("更新航班座位失败");
+    // 5. 提交事务（无需调用 lastInsertId()，直接用生成的 orderId）
+    if (!m_db.commit()) {
+        m_db.rollback();
+        qCritical() << "提交事务失败：" << m_db.lastError().text();
+        emit orderCreatedFailed("创建订单失败：事务提交失败");
         return false;
     }
 
-    qDebug() << "订单创建成功，订单ID：" << orderId;
+    qDebug() << "订单创建成功，订单ID：" << orderId; // 直接使用生成的 ID
+    emit operateResult(true, orderId);
     return true;
 }
+
+
 bool DBManager::updateUserName(const QString& newUserName) {
 
     if (newUserName.isEmpty()) {
@@ -2101,3 +2112,183 @@ bool DBManager::updateUserEmail(const QString& newEmail) {
         return false;
     }
 }
+
+// 删除用户
+bool DBManager::deleteUser(int userId) {
+    // 1. 检查管理员登录状态
+    if (!m_isAdminLoggedIn) {
+        qDebug() << "需要管理员权限才能删除用户";
+        emit operateResult(false, "需要管理员权限才能删除用户");
+        return false;
+    }
+
+    // 2. 检查数据库连接
+    if (!m_db.isOpen()) {
+        qDebug() << "数据库未连接";
+        emit operateResult(false, "数据库未连接");
+        return false;
+    }
+
+    // 3. 检查用户是否存在
+    QSqlQuery checkQuery(m_db);
+    checkQuery.prepare("SELECT Uid, User_name, Email FROM user_info WHERE Uid = :userId");
+    checkQuery.bindValue(":userId", userId);
+
+    if (!checkQuery.exec()) {
+        qDebug() << "检查用户失败:" << checkQuery.lastError().text();
+        emit operateResult(false, "检查用户失败: " + checkQuery.lastError().text());
+        return false;
+    }
+
+    if (!checkQuery.next()) {
+        qDebug() << "用户不存在";
+        emit operateResult(false, "用户不存在");
+        return false;
+    }
+
+    QString username = checkQuery.value("User_name").toString();
+    QString email = checkQuery.value("Email").toString();
+
+    m_db.transaction();
+
+    try {
+        // 6. 先删除用户的关联数据（根据数据库外键级联设置，可选择是否执行）
+        // 注意：这里假设有外键约束，如果没有外键约束，需要手动删除相关数据
+
+        // 6.1 删除用户收藏的航班
+        QSqlQuery deleteFavQuery(m_db);
+        deleteFavQuery.prepare("DELETE FROM user_collect_filght WHERE user_id = :userId");
+        deleteFavQuery.bindValue(":userId", userId);
+        if (!deleteFavQuery.exec()) {
+            qDebug() << "删除用户收藏失败:" << deleteFavQuery.lastError().text();
+            // 根据需求决定是否继续执行
+        }
+
+        // 6.2 删除用户发布的帖子
+        QSqlQuery deletePostsQuery(m_db);
+        deletePostsQuery.prepare("DELETE FROM posts WHERE user_id = :userId");
+        deletePostsQuery.bindValue(":userId", userId);
+        if (!deletePostsQuery.exec()) {
+            qDebug() << "删除用户帖子失败:" << deletePostsQuery.lastError().text();
+        }
+
+        // 6.3 删除用户点赞记录
+        QSqlQuery deleteLikesQuery(m_db);
+        deleteLikesQuery.prepare("DELETE FROM user_post_likes WHERE user_id = :userId");
+        deleteLikesQuery.bindValue(":userId", userId);
+        if (!deleteLikesQuery.exec()) {
+            qDebug() << "删除用户点赞记录失败:" << deleteLikesQuery.lastError().text();
+        }
+
+        // 6.4 删除用户收藏的帖子
+        QSqlQuery deletePostFavQuery(m_db);
+        deletePostFavQuery.prepare("DELETE FROM user_post_favorites WHERE user_id = :userId");
+        deletePostFavQuery.bindValue(":userId", userId);
+        if (!deletePostFavQuery.exec()) {
+            qDebug() << "删除用户收藏的帖子失败:" << deletePostFavQuery.lastError().text();
+        }
+
+        // 6.5 删除用户订单（假设订单表有外键约束，ON DELETE CASCADE）
+        QSqlQuery deleteOrdersQuery(m_db);
+        deleteOrdersQuery.prepare("DELETE FROM order WHERE user_id = :userId");
+        deleteOrdersQuery.bindValue(":userId", userId);
+        if (!deleteOrdersQuery.exec()) {
+            qDebug() << "删除用户订单失败:" << deleteOrdersQuery.lastError().text();
+        }
+
+        // 7. 最后删除用户
+        QSqlQuery deleteUserQuery(m_db);
+        deleteUserQuery.prepare("DELETE FROM user_info WHERE Uid = :userId");
+        deleteUserQuery.bindValue(":userId", userId);
+
+        if (!deleteUserQuery.exec()) {
+            m_db.rollback();
+            QString errorMsg = deleteUserQuery.lastError().text();
+            qDebug() << "删除用户失败:" << errorMsg;
+            emit operateResult(false, "删除用户失败: " + errorMsg);
+            return false;
+        }
+
+        // 8. 检查是否成功删除
+        if (deleteUserQuery.numRowsAffected() <= 0) {
+            m_db.rollback();
+            qDebug() << "用户不存在或删除失败";
+            emit operateResult(false, "用户不存在或删除失败");
+            return false;
+        }
+
+        // 9. 提交事务
+        if (!m_db.commit()) {
+            m_db.rollback();
+            qDebug() << "事务提交失败";
+            emit operateResult(false, "事务提交失败");
+            return false;
+        }
+
+        qDebug() << "管理员" << m_currentAdminName << "删除了用户" << username << "(ID:" << userId << ")";
+        emit operateResult(true, "用户删除成功");
+
+        return true;
+
+    } catch (const std::exception& e) {
+        m_db.rollback();
+        qDebug() << "删除用户时发生异常:" << e.what();
+        emit operateResult(false, QString("删除用户时发生异常: %1").arg(e.what()));
+        return false;
+    }
+}
+
+// 查询所有用户
+QVariantList DBManager::queryAllUser()
+{
+    QMutexLocker locker(&m_mutex);
+    QVariantList result;
+
+    if (!m_db.isOpen()) {
+        emit queryMyOrdersFailed("查询失败：数据库未连接！");
+        emit operateResult(false, "查询失败：数据库未连接！");
+        return result;
+    }
+
+    QSqlQuery query(m_db);
+    QString sql = R"(
+        SELECT
+            Uid,
+            User_name,
+            phone,
+            Email,
+            idcard
+        FROM user_info
+        ORDER BY create_time DESC
+    )";
+
+    if (!query.prepare(sql)) {
+        QString errMsg = "[DB] 查询订单预处理失败：" + query.lastError().text();
+        qCritical() << errMsg;
+        emit operateResult(false, errMsg);
+        return result;
+    }
+
+    if (query.exec()) {
+        while (query.next()) {
+            QVariantMap user;
+            user["Uid"] = query.value("Uid").toInt();
+            user["User_name"] = query.value("User_name").toString();
+            user["phone"] = query.value("phone").toString();
+            user["Email"] = query.value("Email").toString();
+            user["idcard"] = query.value("idcard").toString();
+
+            result.append(user);
+        }
+        emit operateResult(true, QString("查询成功，共 %1 个用户").arg(result.size()));
+    } else {
+        QString errMsg = "[DB] 查询订单失败：" + query.lastError().text();
+        qCritical() << errMsg;
+        emit operateResult(false, errMsg);
+    }
+
+    return result;
+}
+
+
+

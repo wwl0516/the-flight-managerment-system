@@ -140,6 +140,9 @@ public:
     Q_INVOKABLE bool updateUserPhone(const QString& phone);  // 更新当前用户的手机号
     Q_INVOKABLE bool updateUserIdCard(const QString& idCard);  // 更新当前用户的身份证号
 
+    Q_INVOKABLE bool updateUserName(const QString& newUserName);  // 更新当前用户的用户名
+    Q_INVOKABLE bool updateUserEmail(const QString& newEmail);    // 更新当前用户的邮箱
+
 signals:
     void connectionStateChanged(bool isConnected);        // 数据库连接信号
     void operateResult(bool success, const QString &msg); // 操作结果
@@ -174,6 +177,8 @@ signals:
     void orderPaymentUpdated(int orderId, const QString &paymentStatus);
     void allOrdersQueried(const QVariantList &orders);
     void ordersQueriedByCondition(const QVariantList &orders);
+    void userNameUpdated(bool success, const QString& message);
+    void userEmailUpdated(bool success, const QString& message);
 private:
     explicit DBManager(QObject *parent = nullptr);
     ~DBManager() override;

@@ -7,6 +7,7 @@ import QtQml
 import com.flight.db 1.0
 import QtQuick.Dialogs
 ColumnLayout{
+    id:travel_share
     Layout.fillWidth: true
     Layout.fillHeight: true
     spacing: 10
@@ -15,6 +16,26 @@ ColumnLayout{
         "title":"114",
         "content":"514",
         "image_url":""
+    }
+
+    // 刷新页面计时器
+    Timer{
+        id:reload_timer
+        interval: 100
+        onTriggered: {
+            reload_request();
+            console.log("子页面重新加载");
+        }
+    }
+
+    // 页面刷新信号
+    signal reload_request();
+
+    HusMessage{
+        id:send_message
+        z: 999
+        width: parent.width
+        Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
     }
 
     HusTextArea{
@@ -85,6 +106,20 @@ ColumnLayout{
             discovery_image.visible = true
             upload_image.visible = false
             console.log(share_data.image_url)
+        }
+    }
+
+    Connections{
+        target: DBManager
+
+        function onOperateResult(success,message){
+            if(message.includes("发布成功") && success){
+                send_message.success("分享成功！");
+                reload_timer.running = true;
+            }
+            else{
+                send_message.error("发送失败！");
+            }
         }
     }
 

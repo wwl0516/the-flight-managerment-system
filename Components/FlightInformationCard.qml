@@ -165,6 +165,7 @@ HusRectangle{
                 Layout.fillHeight: true
                 Layout.fillWidth: true
             }
+
             //价格&购买按钮
             HusButton{
                 text: qsTr(card_data.price+"元")

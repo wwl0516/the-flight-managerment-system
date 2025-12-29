@@ -5,8 +5,8 @@ import com.flight.db 1.0
 
 ColumnLayout{
 
-    property var post_id:-1
-    property var last_id:-1
+    property var current_post_index:0
+    property var posts_list:[]
 
     Layout.fillHeight: true
     Layout.fillWidth: true
@@ -21,7 +21,8 @@ ColumnLayout{
             let post;
             if(latest_post!==-1){
                 post = DBManager.queryPostDetail(latest_post,DBManager.getCurrentUserId());
-                post_id = post.id;
+                posts_list.push(post.id);
+                current_post_index = 0
                 if(shared_card.item){
                     shared_card.item.card_data={
                         "id":post.id,
@@ -42,10 +43,9 @@ ColumnLayout{
             iconSource: HusIcon.LeftOutlined
             iconSize: 10
             onClicked: {
-                if(last_id!==-1){
-                    let post = DBManager.queryPostDetail(last_id,DBManager.getCurrentUserId());
-                    last_id = post.id;
-                    post_id = last_id;
+                if(current_post_index>0){
+                    current_post_index--;
+                    let post = DBManager.queryPostDetail(posts_list[current_post_index],DBManager.getCurrentUserId());
                     if(shared_card.item){
                         shared_card.item.card_data={
                             "id":post.id,
@@ -64,16 +64,10 @@ ColumnLayout{
             iconSource: HusIcon.RightOutlined
             iconSize: 10
             onClicked: {
-                if( post_id===0){
-                    console.log(post_id);
-                    return;
-                }
-
                 let post;
-                let index = post_id-1;
+                let index = posts_list[current_post_index]-1;
                 while(typeof post!=='object'||(typeof post==='object'&&(Object.keys(post).length===0))){
                     if(index===0){
-                        post_id=0;
                         console.log(post_id);
                         return;
                     }
@@ -81,8 +75,8 @@ ColumnLayout{
                     post = DBManager.queryPostDetail(index,DBManager.getCurrentUserId());
                     --index;
                 }
-                last_id = post_id;
-                post_id = post.id;
+                posts_list.push(post.id);
+                current_post_index++;
                 if(shared_card.item){
                     shared_card.item.card_data={
                         "id":post.id,

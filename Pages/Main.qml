@@ -20,7 +20,6 @@ HusWindow{
         }
     }
 
-
     property var initModel :[]
     width: 1080
     height: 720
@@ -95,45 +94,45 @@ HusWindow{
                         }
                     }
                     initModel: [
-                    {
-                        key:"discover",
-                        label:qsTr("发现"),
-                        iconSource:HusIcon.GlobalOutlined
-                    },
-                    {
-                        key:"my_favourite_flight",
-                        label:qsTr("收藏航班"),
-                        iconSource:HusIcon.StarOutlined
-                    },
-                    {
-                        key:"search_flight",
-                        label:qsTr("航班查询"),
-                        iconSource:HusIcon.SearchOutlined
-                    },
-                    {
-                        key:"my_flight",
-                        label:qsTr("我的订单"),
-                        iconSource:HusIcon.ShopOutlined
-                    },
-                    {
-                        key:"share_trip",
-                        label:qsTr("旅程分享"),
-                        iconSource:HusIcon.SmileOutlined
-                    },
-                    {
-                        enabled: false,
-                        contentDelegate: abc
-                    },
-                    {
-                        key:"my_settings",
-                        label:qsTr("设置"),
-                        iconSource:HusIcon.SettingOutlined
-                    },
-                    {
-                        key:"about_us",
-                        label:qsTr("关于我们"),
-                        iconSource:HusIcon.TeamOutlined
-                    }
+                        {
+                            key:"discover",
+                            label:qsTr("发现"),
+                            iconSource:HusIcon.GlobalOutlined
+                        },
+                        {
+                            key:"my_favourite_flight",
+                            label:qsTr("收藏航班"),
+                            iconSource:HusIcon.StarOutlined
+                        },
+                        {
+                            key:"search_flight",
+                            label:qsTr("航班查询"),
+                            iconSource:HusIcon.SearchOutlined
+                        },
+                        {
+                            key:"my_flight",
+                            label:qsTr("我的订单"),
+                            iconSource:HusIcon.ShopOutlined
+                        },
+                        {
+                            key:"share_trip",
+                            label:qsTr("旅程分享"),
+                            iconSource:HusIcon.SmileOutlined
+                        },
+                        {
+                            enabled: false,
+                            contentDelegate: abc
+                        },
+                        {
+                            key:"my_settings",
+                            label:qsTr("设置"),
+                            iconSource:HusIcon.SettingOutlined
+                        },
+                        {
+                            key:"about_us",
+                            label:qsTr("关于我们"),
+                            iconSource:HusIcon.TeamOutlined
+                        }
 
                     ]
                     onClickMenu:function(deep,key,key_path,data){
@@ -170,6 +169,16 @@ HusWindow{
             id:right_page
             Layout.fillHeight: true
             Layout.fillWidth: true
+
+            onLoaded: {
+                if(right_page.item.reload_request){
+                    right_page.item.reload_request.connect(()=>{
+                        const old_source = right_page.source;
+                        right_page.source = "";
+                        right_page.source = old_source;
+                    });
+                }
+            }
         }
     }
 }

@@ -15,12 +15,6 @@ ColumnLayout{
         "depart_time":""
     }
 
-    property var initModel: [
-        {value:"",label:qsTr("起始地")},
-        {value:"北京",label:qsTr("北京")},
-        {value:"上海",label:qsTr("上海")}
-    ]
-
     // 航班号结果
     ListModel{
         id:flightList

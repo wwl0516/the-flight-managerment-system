@@ -14,8 +14,17 @@ ColumnLayout{
         "depart_time":""
     }
 
-    property var regionsList: [
+    property var departureList: [
         {value:"",label:qsTr("起始地")},
+        {value:"北京",label:qsTr("北京")},
+        {value:"上海",label:qsTr("上海")},
+        {value:"广州",label:qsTr("广州")},
+        {value:"长沙",label:qsTr("长沙")},
+        {value:"深圳",label:qsTr("深圳")}
+    ]
+
+    property var destinationList: [
+        {value:"",label:qsTr("目的地")},
         {value:"北京",label:qsTr("北京")},
         {value:"上海",label:qsTr("上海")},
         {value:"广州",label:qsTr("广州")},
@@ -80,7 +89,7 @@ ColumnLayout{
                 Layout.maximumHeight: 180
                 Layout.fillHeight: true
                 clearEnabled: false
-                model: regionsList
+                model: departureList
                 onActivated: search_data.departure=currentValue
             }
             HusSelect{
@@ -89,7 +98,7 @@ ColumnLayout{
                 Layout.maximumWidth: 180
                 Layout.fillHeight: true
                 clearEnabled: false
-                model: regionsList
+                model: destinationList
                 onActivated: search_data.destination=currentValue
             }
             HusDateTimePicker{
@@ -145,8 +154,8 @@ ColumnLayout{
 
             return ;
         }
-
-        let flights=DBManager.queryFlightsByCondition(search_data.departure,search_data.destination,search_data.depart_time);
+        //console.log(destination.currentValue)
+        let flights=DBManager.queryFlightsByCondition(departure.currentValue,destination.currentValue,pick.text);
         flightList.clear();
         for(let j=0;j<flights.length;j++)
         {
@@ -155,5 +164,18 @@ ColumnLayout{
         }
 
     }
+
+
+    Connections{
+        target: DBManager
+
+        function onOperateResult(success,message){
+            if(message.includes("创建订单成功") && success){
+                searchFlight();
+            }
+
+        }
+    }
+
 
 }

@@ -56,7 +56,7 @@ ColumnLayout{
         target: DBManager
 
         function onOperateResult(success,message){
-            if(message.includes("订单") && message.includes("删除成功") && success){
+            if(message.includes("删除订单成功") && success){
                 get_order_flights();
             }
         }

@@ -42,6 +42,7 @@ ColumnLayout{
                 "depart_time":modelData.depart_time,
                 "arrive_time":modelData.arrive_time,
                 "price":modelData.price,
+                "total_seats":modelData.total_seats,
                 "remain_seats":modelData.remain_seats,
                 "status":modelData.f_status,
                 "order_id":modelData.order_id
@@ -64,7 +65,7 @@ ColumnLayout{
 
         function onOperateResult(success,message)
         {
-            if(message.includes("订单删除成功！订单号")&&success)
+            if(message.includes("删除订单成功")&&success)
             {
                 updateData()
             }

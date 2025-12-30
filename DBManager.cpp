@@ -1505,7 +1505,7 @@ QVariantList DBManager::queryAllOrders()
     if (query.exec()) {
         while (query.next()) {
             QVariantMap order;
-            order["order_id"] = query.value("order_id").toInt();
+            order["order_id"] = query.value("order_id").toString();
             order["flight_id"] = query.value("flight_id").toString();
             order["passenger_name"] = query.value("passenger_name").toString();
             order["passenger_idcard"] = query.value("passenger_idcard").toString();
@@ -1543,30 +1543,59 @@ bool DBManager::deleteOrder(const QString& orderId)
         return false;
     }
 
-    QSqlQuery query(m_db);
-    QString sql = "DELETE FROM `order` WHERE order_id = :order_id";
-    if (!query.prepare(sql)) {
-        QString errMsg = "[DB] 删除预处理失败：" + query.lastError().text();
-        qCritical() << errMsg;
-        emit operateResult(false, errMsg);
+    m_db.transaction();
+
+    // 查询该订单对应的航班ID（先确认订单存在）
+    QString flightId = "";
+    QSqlQuery queryGetFlight(m_db);
+    queryGetFlight.prepare("SELECT flight_id FROM `order` WHERE order_id = :order_id LIMIT 1");
+    queryGetFlight.bindValue(":order_id", orderId);
+    if (!queryGetFlight.exec() || !queryGetFlight.next()) {
+        m_db.rollback(); // 回滚事务
+        qDebug() << "删除订单失败：订单不存在（ID=" << orderId << "）";
+        emit operateResult(false, "订单不存在");
+        return false;
+    }
+    flightId = queryGetFlight.value("flight_id").toString();
+
+    // 删除订单
+    QSqlQuery queryDeleteOrder(m_db);
+    queryDeleteOrder.prepare("DELETE FROM `order` WHERE order_id = :order_id");
+    queryDeleteOrder.bindValue(":order_id", orderId);
+    if (!queryDeleteOrder.exec() || queryDeleteOrder.numRowsAffected() == 0) {
+        m_db.rollback(); // 回滚事务
+        qDebug() << "删除订单失败：" << queryDeleteOrder.lastError().text();
+        emit operateResult(false, "删除订单失败");
         return false;
     }
 
-    query.bindValue(":order_id", orderId);
-    bool success = query.exec();
-
-    if (success && query.numRowsAffected() > 0) {
-        locker.unlock();
-        emit operateResult(true, "订单删除成功！订单号 " + orderId);
-    } else if (success && query.numRowsAffected() == 0) {
-        emit operateResult(false, "删除失败：未找到订单 " + orderId + "！");
-        success = false;
-    } else {
-        QString errMsg = "[DB] 删除失败：" + query.lastError().text();
-        qCritical() << errMsg;
-        emit operateResult(false, errMsg);
+    // 更新航班剩余座位数（+1，且不超过总座位数）
+    QSqlQuery queryUpdateSeat(m_db);
+    queryUpdateSeat.prepare(R"(
+        UPDATE flight
+        SET remain_seats = remain_seats + 1
+        WHERE Flight_id = :flight_id AND remain_seats < total_seats
+    )");
+    queryUpdateSeat.bindValue(":flight_id", flightId);
+    if (!queryUpdateSeat.exec() || queryUpdateSeat.numRowsAffected() == 0) {
+        m_db.rollback(); // 回滚事务（订单已删，需恢复）
+        qDebug() << "更新剩余座位数失败：" << queryUpdateSeat.lastError().text();
+        emit operateResult(false, "删除订单成功，但更新座位数失败（已回滚订单删除）");
+        return false;
     }
-    return success;
+
+    // 提交事务（所有操作成功，确认生效）
+    if (m_db.commit()) {
+        locker.unlock();
+        qDebug() << "删除订单成功（ID=" << orderId << "），航班（ID=" << flightId << "）剩余座位数+1";
+        emit operateResult(true, "删除订单成功，剩余座位数已恢复");
+        return true;
+    } else {
+        m_db.rollback();
+        qDebug() << "事务提交失败：" << m_db.lastError().text();
+        emit operateResult(false, "删除订单失败");
+        return false;
+    }
 }
 
 // 辅助函数：读取图片文件为二进制（带压缩）
@@ -2012,7 +2041,7 @@ bool DBManager::createOrder(int userId, const QString &flightId, const QString& 
     }
 
     qDebug() << "订单创建成功，订单ID：" << orderId; // 直接使用生成的 ID
-    emit operateResult(true, orderId);
+    emit operateResult(true, "创建订单成功");
     return true;
 }
 

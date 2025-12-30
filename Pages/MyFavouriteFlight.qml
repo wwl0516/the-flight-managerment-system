@@ -55,8 +55,7 @@ ColumnLayout{
         target: DBManager
 
         function onOperateResult(success,message){
-            if(message.includes("取消收藏成功") && success){
-                console.log("abcdefg");
+            if((message.includes("取消收藏成功") || message.includes("创建订单成功")) && success){
                 get_favourite_flights();
             }
         }

@@ -21,6 +21,24 @@ ColumnLayout{
         "status":2
     }
 
+    property var departureList: [
+        {value:"",label:qsTr("起始地")},
+        {value:"北京",label:qsTr("北京")},
+        {value:"上海",label:qsTr("上海")},
+        {value:"广州",label:qsTr("广州")},
+        {value:"长沙",label:qsTr("长沙")},
+        {value:"深圳",label:qsTr("深圳")}
+    ]
+
+    property var destinationList: [
+        {value:"",label:qsTr("目的地")},
+        {value:"北京",label:qsTr("北京")},
+        {value:"上海",label:qsTr("上海")},
+        {value:"广州",label:qsTr("广州")},
+        {value:"长沙",label:qsTr("长沙")},
+        {value:"深圳",label:qsTr("深圳")}
+    ]
+
     function validateAddData(data) {
         // 检查所有必需字段是否为空
         if (!data.flight_id || data.flight_id.trim() === "") {
@@ -126,17 +144,30 @@ ColumnLayout{
                     text:"出发地:"
                 }
 
-                HusInput{
-                    id:departureInput
-                    width:200
+                // HusInput{
+                //     id:departureInput
+                //     width:200
+                //     Component.onCompleted: {
+                //         add_data.departure=""
+                //         departureInput.text=""
+                //     }
+                //     onTextChanged: {
+                //         add_data.departure=departureInput.text
+                //     }
+                // }
+                HusSelect{
+                    id:departure
+                    Layout.preferredWidth: 180
+                    Layout.maximumHeight: 180
+                    Layout.fillHeight: true
+                    clearEnabled: false
+                    model: departureList
+                    onActivated: add_data.departure=currentValue
                     Component.onCompleted: {
                         add_data.departure=""
-                        departureInput.text=""
-                    }
-                    onTextChanged: {
-                        add_data.departure=departureInput.text
                     }
                 }
+
             }
 
             Row{
@@ -145,15 +176,28 @@ ColumnLayout{
                     text:"目的地:"
                 }
 
-                HusInput{
-                    id:destinationInput
-                    width:200
+                // HusInput{
+                //     id:destinationInput
+                //     width:200
+                //     Component.onCompleted: {
+                //         add_data.destination=""
+                //         destinationInput.text=""
+                //     }
+                //     onTextChanged: {
+                //         add_data.destination=destinationInput.text
+                //     }
+                // }
+
+                HusSelect{
+                    id:destination
+                    Layout.preferredWidth: 180
+                    Layout.maximumWidth: 180
+                    Layout.fillHeight: true
+                    clearEnabled: false
+                    model: destinationList
+                    onActivated: add_data.destination=currentValue
                     Component.onCompleted: {
                         add_data.destination=""
-                        destinationInput.text=""
-                    }
-                    onTextChanged: {
-                        add_data.destination=destinationInput.text
                     }
                 }
             }
